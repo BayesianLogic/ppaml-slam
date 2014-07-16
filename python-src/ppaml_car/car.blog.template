@@ -38,16 +38,15 @@ fixed RealMatrix dynamics(
         Real velocity, Real steering, Real delta_t)
     = ppaml_car.DynamicsInterp();
 
-random RealMatrix state(Timestep timestep) {
-    if timestep == @0 then ~ MultivarGaussian(initial_state, dynamics_noise)
-    else ~ MultivarGaussian(
+random RealMatrix state(Timestep timestep) ~
+    if timestep == @0 then MultivarGaussian(initial_state, dynamics_noise)
+    else MultivarGaussian(
         dynamics(
-            car_params, state(Prev(timestep)),
+            car_params, state(prev(timestep)),
             toReal(controls[toInt(timestep)][0]),
             toReal(controls[toInt(timestep)][1]),
-            toReal(time[toInt(timestep)] - time[toInt(Prev(timestep))])),
-        dynamics_noise)
-};
+            toReal(time[toInt(timestep)] - time[toInt(prev(timestep))])),
+        dynamics_noise);
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -60,9 +59,8 @@ random RealMatrix state(Timestep timestep) {
 fixed RealMatrix observation_matrix = [[1, 0, 0], [0, 1, 0]];
 fixed RealMatrix observation_noise = 0.0025 * eye(2);
 
-random RealMatrix observations(Timestep timestep) {
-    ~ MultivarGaussian(observation_matrix * state(timestep), observation_noise)
-};
+random RealMatrix observations(Timestep timestep) ~
+    MultivarGaussian(observation_matrix * state(timestep), observation_noise);
 
 
 //////////////////////////////////////////////////////////////////////////////
