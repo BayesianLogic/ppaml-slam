@@ -17,6 +17,7 @@ Example usage:
 import argparse
 import json
 import numpy as np
+import re
 
 from ppaml_car.data import LATITUDE_MIN
 from ppaml_car.data import LATITUDE_MAX
@@ -101,20 +102,25 @@ def read_blog_json_data(path):
     all_timesteps = []
     all_timestamps = []
     all_samples = []
+    # state entry is like ("[[0.0], [0.0], [0.0]]", log_prob)
+    state_re = re.compile("\[\[(.*)\], \[(.*)\], \[(.*)\]\]")
     for query_str, entries in data:
         if query_str.startswith('state'):
             # query_str is like "state(@123)"
             timestep = int(query_str[7:-1])
             samples = []
             for entry in entries:
-                # entry is like ("[0.0; 0.0; 0.0]", log_prob)
-                sample = [entry[1]] + map(float, entry[0][1:-1].split('; '))
+                # entry is like ("[[0.0], [0.0], [0.0]]", log_prob)
+                state = map(float, state_re.match(entry[0]).groups())
+                log_prob = entry[1]
+                sample = [log_prob] + state
                 samples.append(sample)
             all_timesteps.append(timestep)
             all_samples.append(samples)
-        elif query_str.startswith('__SUB_MAT(time'):
-            # query_str is like "__SUB_MAT(time, toInt(@0))"
-            timestamp = float(entries[0][0][1:-1])
+        elif query_str.startswith('toReal(__SUB_MAT(time'):
+            # query_str is like "toReal(__SUB_MAT(time, toInt(@0)))"
+            # entry is like "0.005"
+            timestamp = float(entries[0][0])
             all_timestamps.append(timestamp)
         else:
             assert False
