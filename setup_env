@@ -3,10 +3,13 @@
 # Get the dir where this file is located:
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-# Set up PYTHONPATH
+# Set up PYTHONPATH:
 export PYTHONPATH="${DIR}/python-src"
 echo "PYTHONPATH=${PYTHONPATH}"
 
-# Set up CLASSPATH (my blog launcher honors this):
-export CLASSPATH="${DIR}/java-src"
+# Set up CLASSPATH:
+# FIXME: This hardcodes the path to junit4.jar, because that is not included in
+# blog/target/universal/stage/lib for some reason. This is brittle. We should
+# probably transition to using SBT here too...
+export CLASSPATH="/usr/share/java/junit4.jar:${DIR}/blog/target/universal/stage/lib/*:${DIR}/java-src"
 echo "CLASSPATH=${CLASSPATH}"
