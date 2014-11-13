@@ -33,5 +33,32 @@ def norm_log_pdf_fixed_sigma(sigma):
 def norm_log_pdf(x, mu, sigma):
     """
     Log PDF of multivariate normal distribution.
+
+    (Equivalent to scipy.stats.multivariate_normal.pdf, which doesn't exist in
+    scipy < 0.14.)
     """
     return norm_log_pdf_fixed_sigma(sigma)(x, mu)
+
+
+def norm_log_pdf_id_cov(x, mu, cov_scale):
+    """
+    Log PDF of MVG with scaled-identity covariance.
+
+    (scipy.stats.multivariate_normal.pdf and norm_log_pdf both construct and
+    invert the full covariance matrix, which is wasteful.)
+    """
+    assert cov_scale > 0
+    k = x.shape[0]
+    logdet = np.log(cov_scale) * k
+    log_norm_const = -0.5 * (k * np.log(2 * np.pi) + logdet)
+    return log_norm_const - 0.5 * np.sum((x - mu) * (x - mu)) / cov_scale
+
+
+def logaddexp_many(vals):
+    """
+    Like np.logaddexp, but take a sequence instead of just two values.
+    """
+    result = vals[0]
+    for i in xrange(1, len(vals)):
+        result = np.logaddexp(result, vals[i])
+    return result
