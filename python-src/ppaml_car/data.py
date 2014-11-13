@@ -28,6 +28,9 @@ INTENSITY_MAX = 32768.0
 
 
 class Dataset(object):
+    """
+    This uses pure Python data structs, not numpy.
+    """
     def __init__(self):
         # Car properties:
         self.L = None

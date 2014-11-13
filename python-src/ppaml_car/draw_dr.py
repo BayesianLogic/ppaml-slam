@@ -152,7 +152,7 @@ def get_ground_truth_poses(dataset):
     return gps_ts, gps_xs, gps_ys, gps_thetas
 
 
-def get_my_poses(dataset, dynamics):
+def get_dead_reckoning_poses(dataset, dynamics):
     """
     Return ts, xs, ys, thetas given by dynamics model.
     """
@@ -191,8 +191,8 @@ def demo(dataset_name):
     ax1 = fig1.add_subplot(111)
     gps_poses = get_ground_truth_poses(dataset)
     plot_traj(ax1, 'ground', *gps_poses)
-    my_poses = get_my_poses(dataset, dynamics)
-    plot_traj(ax1, 'mine', *my_poses)
+    dr_poses = get_dead_reckoning_poses(dataset, dynamics)
+    plot_traj(ax1, 'dead-reckoning', *dr_poses)
     ax1.set_xlim(X_MIN - 1, X_MAX + 1)
     ax1.set_ylim(Y_MIN - 1, Y_MAX + 1)
     ax1.legend()
@@ -200,7 +200,7 @@ def demo(dataset_name):
     # Components of ground-truth trajectory vs my trajectory:
     controls = get_controls(dataset)
     fig2 = plt.figure()
-    plot_components(fig2, 'ground', gps_poses, my_poses, controls)
+    plot_components(fig2, 'ground', gps_poses, dr_poses, controls)
 
     plt.show()
 
