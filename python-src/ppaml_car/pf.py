@@ -10,6 +10,7 @@ from ppaml_car.draw_dr import plot_traj
 from ppaml_car.lasers import car_loc_to_laser_loc
 from ppaml_car.lasers import default_laser_angles
 from ppaml_car.lasers import default_laser_max_range
+from ppaml_car.lasers import plot_lasers
 from ppaml_car.lasers import readings_for_obstacles
 
 from numutil import logaddexp_many
@@ -60,7 +61,7 @@ class PF(object):
         self.particles = []
         for index in indices:
             self.particles.append(new_particles[index].clone())
-        self.hook_after_resample()
+        self.hook_after_resample(indices)
 
         # Advance timestep.
         self.hook_after_step()
@@ -89,7 +90,7 @@ class PF(object):
     def hook_after_advance(self, new_particles, norm_logweights):
         pass
 
-    def hook_after_resample(self):
+    def hook_after_resample(self, indices):
         pass
 
     def hook_after_step(self):
@@ -124,7 +125,7 @@ class LocPF(PF):
         super(LocPF, self).__init__(num_particles)
         self.dataset = dataset
         self.last_control_ts = 0
-        self.dyn_noise_stdev = 0.1
+        self.dyn_noise_stdev = 0.003
         self.obs_cov_scale = 0.1
         self.obstacle_radius = 0.5
         self.laser_angles = default_laser_angles()
@@ -140,6 +141,7 @@ class LocPF(PF):
         self.ax1.set_xlim(X_MIN - 1, X_MAX + 1)
         self.ax1.set_ylim(Y_MIN - 1, Y_MAX + 1)
         self.ax1.legend()
+        plt.ion()  # needed for running through cProfile
         plt.show()
 
     def new_particle_from_prior(self):
@@ -176,6 +178,8 @@ class LocPF(PF):
         return np.random.normal(loc=0.0, scale=self.dyn_noise_stdev, size=3)
 
     def logweigh_particle(self, particle):
+        logweight = 0.0
+
         if self.dataset.ts2sensor[self.current_ts] == 'laser':
             obstacles = []
             for x, y in particle.obstacles:
@@ -188,16 +192,44 @@ class LocPF(PF):
                 self.laser_angles, self.laser_max_range,
                 obstacles)
             obs_lasers = np.array(self.dataset.ts2laser[self.current_ts])
-            return norm_log_pdf_id_cov(
+            logweight = norm_log_pdf_id_cov(
                 obs_lasers, true_lasers, self.obs_cov_scale)
-        else:
-            return 0.0
+
+            if False:
+            # if self.particles[0].x != self.particles[1].x:
+                plt.figure('true_lasers')
+                plt.gca().clear()
+                plot_lasers(
+                    laser_x, laser_y, laser_theta,
+                    self.laser_angles, self.laser_max_range,
+                    obstacles, true_lasers, plt.gca())
+
+                plt.figure('obs_lasers')
+                plt.gca().clear()
+                plot_lasers(
+                    laser_x, laser_y, laser_theta,
+                    self.laser_angles, self.laser_max_range,
+                    obstacles, obs_lasers, plt.gca())
+
+                plt.figure('difference')
+                plt.gca().clear()
+                plt.plot(true_lasers, 'g')
+                plt.plot(obs_lasers, 'r')
+
+                print "logweight {}".format(logweight)
+                raw_input()
+
+        return logweight
 
     def have_more_data(self):
+        # return self.current_ts < 500
         return self.current_ts < len(self.dataset.timestamps)
 
     def hook_after_advance(self, new_particles, norm_logweights):
         self.debug_logweights = norm_logweights
+
+    def hook_after_resample(self, indices):
+        print "{} particles survived".format(len(set(indices)))
 
     def hook_after_step(self):
         max_logweight = np.max(self.debug_logweights)
@@ -211,16 +243,21 @@ class LocPF(PF):
                 max_logweight,
                 np.exp(max_logweight)))
 
-        all_particles = []
-        for particle in self.particles:
-            all_particles.append((particle.x, particle.y))
-        all_particles = np.array(all_particles)
-        self.ax1.scatter(
-            all_particles[:, 0],
-            all_particles[:, 1],
-            s=1,
-            label='all particles')
-        plt.draw()
+        # Plotting is slow, so don't do it at every time step.
+        if self.current_ts % 10 == 0:
+            all_particles = []
+            for particle in self.particles:
+                all_particles.append((particle.x, particle.y))
+            all_particles = np.array(all_particles)
+            # self.ax1.clear()
+            self.ax1.set_xlim(X_MIN - 1, X_MAX + 1)
+            self.ax1.set_ylim(Y_MIN - 1, Y_MAX + 1)
+            self.ax1.scatter(
+                all_particles[:, 0],
+                all_particles[:, 1],
+                s=1,
+                label='all particles')
+            plt.draw()
 
 
 # FIXME:
@@ -232,6 +269,10 @@ class LocPF(PF):
 # - java code uses new_xdot etc and keeps only (x, y, theta) as state; python
 # code uses the old xdot etc and keeps (x, y, theta, xdot, ydot, thetadot) as
 # state.
+#
+# - when considering a laser reading in logweigh_particle(), does not cause
+# particles to advance to that time, so particles are a little bit in the past,
+# when the last control reading was processed.
 
 
 def demo(dataset_name, num_particles):
