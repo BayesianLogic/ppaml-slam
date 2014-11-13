@@ -151,10 +151,10 @@ def plot_liks(fixed_x, fixed_y, fixed_theta, true_x, true_y, true_theta):
 
 
 if __name__ == "__main__":
-    min_x = data.LONGITUDE_MIN
-    max_x = data.LONGITUDE_MAX
-    min_y = data.LATITUDE_MIN
-    max_y = data.LATITUDE_MAX
+    min_x = data.X_MIN
+    max_x = data.X_MAX
+    min_y = data.Y_MIN
+    max_y = data.Y_MAX
     min_theta = -np.pi
     max_theta = np.pi
     a = 0.299541
