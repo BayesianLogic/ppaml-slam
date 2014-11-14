@@ -2,6 +2,7 @@ import ppaml_car
 
 from numpy.testing import assert_almost_equal as assert_feq
 import csv
+import numpy as np
 import os
 
 
@@ -29,7 +30,7 @@ INTENSITY_MAX = 32768.0
 
 class Dataset(object):
     """
-    This uses pure Python data structs, not numpy.
+    This stores everything as Python lists, not numpy arrays.
     """
     def __init__(self):
         # Car properties:
@@ -244,3 +245,23 @@ class Dataset(object):
                 intensity.reverse()
                 laser_intensity.append([time] + lasers + intensity)
         return laser_intensity
+
+    def get_all_lasers(self):
+        """
+        Return lasers as an array with (time, laser0, ..., laser360) rows.
+        """
+        lasers = []
+        for ts, time in enumerate(self.timestamps):
+            if self.ts2sensor[ts] == 'laser':
+                lasers.append([time] + self.ts2laser[ts])
+        return np.array(lasers)
+
+    def get_all_ground_lasers(self):
+        """
+        Return ground lasers as array with (time, laser0, ..., laser360) rows.
+        """
+        lasers = []
+        for ts, time in enumerate(self.timestamps):
+            if self.ts2sensor[ts] == 'laser':
+                lasers.append([time] + self.ground_ts2laser[ts])
+        return np.array(lasers)

@@ -1,8 +1,6 @@
-from ppaml_car.data import path_for_dataset
-from ppaml_car.data import read_data
-from ppaml_car.evaluate import controls_from_readings
-from ppaml_car.evaluate import gps_from_readings
-from ppaml_car.evaluate import lasers_from_readings
+from ppaml_car.data import Dataset
+# from ppaml_car.evaluate import controls_from_readings
+# from ppaml_car.evaluate import gps_from_readings
 
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -60,10 +58,10 @@ def estimate_gps_noise(ground_readings, noisy_readings):
         plt.hist(data, bins=100, normed=True)
 
 
-def estimate_lasers_noise(ground_readings, noisy_readings):
-    # Laser readings are (time, laser0, ..., laser360) tuples.
-    ground_lasers = lasers_from_readings(ground_readings)
-    noisy_lasers = lasers_from_readings(noisy_readings)
+def estimate_lasers_noise(dataset):
+    # Laser rows are (time, laser0, ..., laser360).
+    ground_lasers = dataset.get_all_ground_lasers()
+    noisy_lasers = dataset.get_all_lasers()
     diffs = noisy_lasers[:, 1:] - ground_lasers[:, 1:]
 
     # Estimate noise variance, flattened across all angles.
@@ -84,12 +82,10 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         raise RuntimeError("Usage example: {} 1_straight".format(sys.argv[0]))
 
-    dataset_name = sys.argv[1]
-    ground_readings = read_data(path_for_dataset(dataset_name, 'ground'))
-    noisy_readings = read_data(path_for_dataset(dataset_name, 'noisy'))
+    dataset = Dataset.read(sys.argv[1])
 
     # estimate_controls_noise(ground_readings, noisy_readings)
     # estimate_gps_noise(ground_readings, noisy_readings)
-    estimate_lasers_noise(ground_readings, noisy_readings)
+    estimate_lasers_noise(dataset)
 
     plt.show()
