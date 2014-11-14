@@ -1,6 +1,7 @@
 import nose
 import numpy as np
 
+from ppaml_car import fast
 from ppaml_car import lasers
 
 
@@ -33,6 +34,6 @@ def test_readings_for_obstacles_old_new():
         print ltheta
         readings_1 = lasers.readings_for_obstacles_old(
             lx, ly, ltheta, laser_angles, laser_max_range, obstacles)
-        readings_2 = lasers.readings_for_obstacles(
+        readings_2 = fast.readings_for_obstacles(
             lx, ly, ltheta, laser_angles, laser_max_range, obstacles)
         nose.tools.assert_true(np.sum(np.abs(readings_1 - readings_2)) < 1e-6)

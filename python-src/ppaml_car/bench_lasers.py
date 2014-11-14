@@ -1,4 +1,4 @@
-# from ppaml_car import data
+from ppaml_car import fast
 from ppaml_car import lasers
 
 from timeit import timeit
@@ -48,7 +48,7 @@ def readings_for_obstacles_old():
 
 
 def readings_for_obstacles_new():
-    return lasers.readings_for_obstacles(
+    return fast.readings_for_obstacles(
         true_x, true_y, true_theta,
         laser_angles, laser_max_range,
         obstacles)
