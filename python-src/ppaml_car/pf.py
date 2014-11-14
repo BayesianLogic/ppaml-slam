@@ -7,11 +7,11 @@ from ppaml_car.draw_dr import dynamics
 from ppaml_car.draw_dr import get_dead_reckoning_poses
 from ppaml_car.draw_dr import get_ground_truth_poses
 from ppaml_car.draw_dr import plot_traj
+from ppaml_car.fast import readings_for_obstacles
 from ppaml_car.lasers import car_loc_to_laser_loc
 from ppaml_car.lasers import default_laser_angles
 from ppaml_car.lasers import default_laser_max_range
 from ppaml_car.lasers import plot_lasers
-from ppaml_car.lasers import readings_for_obstacles
 
 from numutil import logaddexp_many
 from numutil import norm_log_pdf_id_cov
@@ -127,9 +127,15 @@ class LocPF(PF):
         self.last_control_ts = 0
         self.dyn_noise_stdev = 0.003
         self.obs_cov_scale = 0.1
-        self.obstacle_radius = 0.5
         self.laser_angles = default_laser_angles()
         self.laser_max_range = default_laser_max_range()
+
+        # Convert obstacles from list of (x, y) to array of (x, y, r).
+        obstacle_radius = 0.5
+        self.obstacles = []
+        for x, y in dataset.ground_obstacles:
+            self.obstacles.append((x, y, obstacle_radius))
+        self.obstacles = np.array(self.obstacles)
 
         # Plot ground-truth and dead-reckoning trajectories.
         self.fig1 = plt.figure()
@@ -148,7 +154,7 @@ class LocPF(PF):
         return LocPFParticle(
             self.dataset.init_x, self.dataset.init_y, self.dataset.init_angle,
             0.0, 0.0, 0.0,
-            self.dataset.ground_obstacles)
+            self.obstacles)
 
     def advance_particle(self, particle):
         if self.dataset.ts2sensor[self.current_ts] == 'control':
@@ -181,16 +187,13 @@ class LocPF(PF):
         logweight = 0.0
 
         if self.dataset.ts2sensor[self.current_ts] == 'laser':
-            obstacles = []
-            for x, y in particle.obstacles:
-                obstacles.append((x, y, self.obstacle_radius))
             laser_x, laser_y, laser_theta = car_loc_to_laser_loc(
                 particle.x, particle.y, particle.theta,
                 self.dataset.a, self.dataset.b)
             true_lasers = readings_for_obstacles(
                 laser_x, laser_y, laser_theta,
                 self.laser_angles, self.laser_max_range,
-                obstacles)
+                particle.obstacles)
             obs_lasers = np.array(self.dataset.ts2laser[self.current_ts])
             logweight = norm_log_pdf_id_cov(
                 obs_lasers, true_lasers, self.obs_cov_scale)
@@ -202,14 +205,14 @@ class LocPF(PF):
                 plot_lasers(
                     laser_x, laser_y, laser_theta,
                     self.laser_angles, self.laser_max_range,
-                    obstacles, true_lasers, plt.gca())
+                    particle.obstacles, true_lasers, plt.gca())
 
                 plt.figure('obs_lasers')
                 plt.gca().clear()
                 plot_lasers(
                     laser_x, laser_y, laser_theta,
                     self.laser_angles, self.laser_max_range,
-                    obstacles, obs_lasers, plt.gca())
+                    particle.obstacles, obs_lasers, plt.gca())
 
                 plt.figure('difference')
                 plt.gca().clear()
@@ -222,8 +225,8 @@ class LocPF(PF):
         return logweight
 
     def have_more_data(self):
-        # return self.current_ts < 500
-        return self.current_ts < len(self.dataset.timestamps)
+        return self.current_ts < 200
+        # return self.current_ts < len(self.dataset.timestamps)
 
     def hook_after_advance(self, new_particles, norm_logweights):
         self.debug_logweights = norm_logweights
