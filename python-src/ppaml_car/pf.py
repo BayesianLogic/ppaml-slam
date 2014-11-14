@@ -228,6 +228,9 @@ class LocPF(PF):
         return self.current_ts < 200
         # return self.current_ts < len(self.dataset.timestamps)
 
+    def hook_after_initialize(self):
+        self.old_scatter = None
+
     def hook_after_advance(self, new_particles, norm_logweights):
         self.debug_logweights = norm_logweights
 
@@ -247,20 +250,21 @@ class LocPF(PF):
                 np.exp(max_logweight)))
 
         # Plotting is slow, so don't do it at every time step.
-        if self.current_ts % 10 == 0:
+        # if self.current_ts % 10 == 0:
+        if True:
             all_particles = []
             for particle in self.particles:
                 all_particles.append((particle.x, particle.y))
             all_particles = np.array(all_particles)
-            # self.ax1.clear()
-            self.ax1.set_xlim(X_MIN - 1, X_MAX + 1)
-            self.ax1.set_ylim(Y_MIN - 1, Y_MAX + 1)
-            self.ax1.scatter(
+            if self.old_scatter:
+                self.old_scatter.remove()
+            self.old_scatter = self.ax1.scatter(
                 all_particles[:, 0],
                 all_particles[:, 1],
                 s=1,
                 label='all particles')
             plt.draw()
+            raw_input()
 
 
 # FIXME:
