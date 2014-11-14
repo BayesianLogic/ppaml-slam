@@ -1,0 +1,16 @@
+Visualizing profiling results with kcachegrind:
+
+```
+python -m cProfile -o prof pf.py 2_bend 1000
+pyprof2calltree -i prof -k
+
+# Long way:
+pyprof2calltree -i prof -o prof.k
+kcachegrind prof.k
+```
+
+Another nice alternative, CLI only:
+
+```
+python -m pyinstrument pf.py 2_bend 1000
+```
