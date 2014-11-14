@@ -136,10 +136,6 @@ class Dataset(object):
                 row = laser_intensity_data[laser_intensity_i]
                 self.ts2laser[ts] = row[1:1 + LASER_COLS]
                 self.ts2intensity[ts] = row[1 + LASER_COLS:]
-                # In the data, the laser and intensity readings are clockwise.
-                # Make them counter-clockwise.
-                self.ts2laser[ts].reverse()
-                self.ts2intensity[ts].reverse()
                 laser_intensity_i += 1
             else:
                 assert False
@@ -229,7 +225,7 @@ class Dataset(object):
     def read_raw_laser_intensity_data(path):
         """
         Return float array with columns:
-        (time, laser361, ..., laser1, intensity361, ..., intensity1).
+        (time, laser1, ..., laser361, intensity1, ..., intensity361).
         """
         laser_intensity = []
         with open(path) as csv_file:
@@ -238,5 +234,13 @@ class Dataset(object):
             assert header[0] == 'TimeLaser'
             for row in reader:
                 assert len(row) == 1 + LASER_COLS + INTENSITY_COLS
-                laser_intensity.append(map(float, row))
+                row = map(float, row)
+                time = row[0]
+                lasers = row[1:1 + LASER_COLS]
+                intensity = row[1 + LASER_COLS:]
+                # In the data, the laser and intensity readings are clockwise.
+                # Make them counter-clockwise (trigonometric order).
+                lasers.reverse()
+                intensity.reverse()
+                laser_intensity.append([time] + lasers + intensity)
         return laser_intensity
