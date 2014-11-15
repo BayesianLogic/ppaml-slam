@@ -109,6 +109,17 @@ def readings_for_obstacle_vectorized(
     return solns
 
 
+def plot_obstacles(obstacles, ax):
+    """
+    Plot the given list of obstacles.
+
+    `obstacles` is a list of (x, y, r) tuples.
+    """
+    for x, y, r in obstacles:
+        obst = plt.Circle((x, y), radius=r, color=(1, 0, 0, 0.6), zorder=1)
+        ax.add_patch(obst)
+
+
 def plot_lasers(
         laser_x, laser_y, laser_theta,
         laser_angles, laser_max_range,
@@ -119,17 +130,16 @@ def plot_lasers(
     `obstacles` is a list of (x, y, r) tuples.
     """
     ax.plot([laser_x], [laser_y], 'go')
-    for x, y, r in obstacles:
-        obst = plt.Circle((x, y), radius=r, color='r')
-        ax.add_patch(obst)
     for i, angle in enumerate(laser_angles):
         ax.add_line(plt.Line2D(
             [laser_x,
              laser_x + readings[i] * np.cos(laser_theta + angle)],
             [laser_y,
-             laser_y + readings[i] * np.sin(laser_theta + angle)]))
-    ax.set_xlim(-10, 20)
-    ax.set_ylim(-10, 20)
+             laser_y + readings[i] * np.sin(laser_theta + angle)],
+            zorder=0))
+    plot_obstacles(obstacles, ax)
+    ax.set_xlim(-10, 10)
+    ax.set_ylim(-10, 10)
 
     # TODO: use transparency s.t. the rays don't cover the obstacles...
 
