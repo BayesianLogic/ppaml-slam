@@ -133,7 +133,7 @@ class LocPF(PF):
         self.laser_max_range = default_laser_max_range()
 
         # Convert obstacles from list of (x, y) to array of (x, y, r).
-        obstacle_radius = 0.35
+        obstacle_radius = 0.37
         self.obstacles = []
         for x, y in dataset.ground_obstacles:
             self.obstacles.append((x, y, obstacle_radius))
@@ -299,19 +299,23 @@ class LocPF(PF):
                 label='all particles')
 
             best_i = np.argmax(self.debug_logweights)
-            best_p = self.debug_new_particles[best_i]
+            best_particle = self.debug_new_particles[best_i]
             print "best_particle = {}".format(
-                [best_p.x, best_p.y, best_p.theta])
+                [best_particle.x, best_particle.y, best_particle.theta])
 
             # Plot the last known ground GPS location.
             for i in xrange(self.current_ts - 1, -1, -1):
                 if self.dataset.ts2sensor[i] == 'gps':
-                    pose = self.dataset.ground_ts2gps[i]
-                    print "ground_gps = {}".format(pose)
+                    ground_gps = self.dataset.ground_ts2gps[i]
+                    print "ground_gps = {}".format(ground_gps)
+                    print "dx = {};  dy = {};  dtheta = {}".format(
+                        best_particle.x - ground_gps[0],
+                        best_particle.y - ground_gps[1],
+                        best_particle.theta - ground_gps[2])
                     if self.old_gps:
                         self.old_gps.remove()
                     self.old_gps = self.ax1.scatter(
-                        [pose[0]], [pose[1]], marker='x')
+                        [ground_gps[0]], [ground_gps[1]], marker='x')
                     break
 
             plt.draw()
