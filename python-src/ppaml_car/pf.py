@@ -341,7 +341,7 @@ def normalize_radians(theta):
         theta += 2 * np.pi
     elif theta >= np.pi:
         theta -= 2 * np.pi
-    assert -np.pi <= theta <= np.pi
+    assert -np.pi <= theta < np.pi
     return theta
 
 

@@ -1,4 +1,4 @@
-fast.c: fast.pyx
+fast.c: fast.pyx fast_lasers.c fast_lasers.h
 	python setup.py build_ext --inplace
 
 clean:

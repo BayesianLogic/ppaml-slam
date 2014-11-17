@@ -19,6 +19,9 @@ def test_readings_for_obstacle_vectorized():
 
 
 def test_readings_for_obstacles_regression_1():
+    """
+    Regression test for bug before normalize_radians().
+    """
     a = 0.299541
     b = 0.0500507
     laser_angles = lasers.default_laser_angles()
@@ -38,14 +41,17 @@ def test_readings_for_obstacles_regression_1():
         lx, ly, ltheta, laser_angles, laser_max_range, obstacles)
 
     # For debugging when the test fails:
-    if True:
+    if False:
+        for i, val in enumerate(obs_lasers):
+            print i, val
         lasers.plot_lasers(
             lx, ly, ltheta, laser_angles, laser_max_range,
             obstacles, obs_lasers, plt.gca())
         plt.show()
 
-    # LEFT TODO: currently this is wrong (misses an obstacle)
-    assert False
+    nose.tools.assert_almost_equals(obs_lasers[16], 1.89867472652, 10)
+    nose.tools.assert_almost_equals(obs_lasers[85], 10.0, 10)
+    nose.tools.assert_almost_equals(obs_lasers[278], 0.739595449593, 10)
 
 
 def test_readings_for_obstacles_old_new():

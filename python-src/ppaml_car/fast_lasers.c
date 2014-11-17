@@ -2,6 +2,8 @@
 #include <math.h>
 #include <stdbool.h>
 
+#define M_PI 3.14159265358979323846264338327
+
 void solve_quadratic_equation(
         double a, double b, double c, bool *success, double *x1, double *x2) {
     double delta = b * b - 4 * a * c;
@@ -65,6 +67,19 @@ bool update_ray(
     return true;
 }
 
+
+// Bring angle within [-PI, PI).
+// Currently works only for angles that are at most 2*PI off.
+double normalize_radians(double theta) {
+    if (theta < -M_PI) {
+        theta += 2 * M_PI;
+    } else if (theta > M_PI) {
+        theta -= 2 * M_PI;
+    }
+    assert (theta >= -M_PI && theta < M_PI);
+    return theta;
+}
+
 void readings_for_obstacles(
         double laser_x, double laser_y, double laser_theta,
         int num_angles, double laser_angles[], double laser_max_range,
@@ -86,7 +101,7 @@ void readings_for_obstacles(
         }
 
         // Find a ray that hits the obstacle.
-        double angle_to_obst = atan2(y - laser_y, x - laser_x) - laser_theta;
+        double angle_to_obst = normalize_radians(atan2(y - laser_y, x - laser_x) - laser_theta);
         int index;
         if (angle_to_obst <= laser_angles[0]) {
             index = 0;
