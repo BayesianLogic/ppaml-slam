@@ -71,40 +71,39 @@ def dynamics(dataset, old_state, encoder_velocity, steering_angle, delta_t):
     return new_state
 
 
-def plot_traj(ax, label, ts, xs, ys, thetas):
-    """
-    Plot trajectory.
-    """
-    ax.plot(xs, ys, label=label)
-
-    # TODO take into account ts and thetas
-
-
-def plot_components(fig, label, gps_poses, my_poses, controls):
+def plot_components(fig, label, gps_traj, dr_traj, controls):
     """
     Plot x, y, theta, velocity, steering individually.
     """
-    gps_ts, gps_xs, gps_ys, gps_thetas = gps_poses
-    my_ts, my_xs, my_ys, my_thetas = my_poses
+    gps_ts = gps_traj[:, 0]
+    gps_xs = gps_traj[:, 1]
+    gps_ys = gps_traj[:, 2]
+    gps_thetas = gps_traj[:, 3]
+
+    dr_ts = dr_traj[:, 0]
+    dr_xs = dr_traj[:, 1]
+    dr_ys = dr_traj[:, 2]
+    dr_thetas = dr_traj[:, 3]
+
     control_ts, velocities, steerings = controls
 
     x_ax = fig.add_subplot(511)
     x_ax.plot(gps_ts, gps_xs, label='ground')
-    x_ax.plot(my_ts, my_xs, label='mine')
+    x_ax.plot(dr_ts, dr_xs, label='mine')
     x_ax.set_ylabel('x')
     x_ax.set_ylim(X_MIN - 1, X_MAX + 1)
     x_ax.legend()
 
     y_ax = fig.add_subplot(512)
     y_ax.plot(gps_ts, gps_ys, label='ground')
-    y_ax.plot(my_ts, my_ys, label='mine')
+    y_ax.plot(dr_ts, dr_ys, label='mine')
     y_ax.set_ylabel('y')
     y_ax.set_ylim(Y_MIN - 1, Y_MAX + 1)
     y_ax.legend()
 
     theta_ax = fig.add_subplot(513)
     theta_ax.plot(gps_ts, gps_thetas, label='ground')
-    theta_ax.plot(my_ts, my_thetas, label='mine')
+    theta_ax.plot(dr_ts, dr_thetas, label='mine')
     theta_ax.set_ylabel('theta')
     theta_ax.set_ylim(-np.pi, np.pi)
     theta_ax.legend()
@@ -134,50 +133,46 @@ def get_controls(dataset):
     return control_ts, velocities, steerings
 
 
-def get_ground_truth_poses(dataset):
+def get_ground_truth_traj(dataset):
     """
-    Return ts, xs, ys, thetas from GPS readings.
+    Return ground-truth trajectory from the GPS readings.
+
+    The trajectory is an array with (time, x, y, theta) rows.
     """
-    gps_ts = []
-    gps_xs = []
-    gps_ys = []
-    gps_thetas = []
+    traj = []
     for ts, time in enumerate(dataset.timestamps):
         if dataset.ts2sensor[ts] != 'gps':
             continue
-        gps_ts.append(time)
-        gps_xs.append(dataset.ground_ts2gps[ts][0])
-        gps_ys.append(dataset.ground_ts2gps[ts][1])
-        gps_thetas.append(dataset.ground_ts2gps[ts][2])
-    return gps_ts, gps_xs, gps_ys, gps_thetas
+        reading = dataset.ground_ts2gps[ts]
+        traj.append((time, reading[0], reading[1], reading[2]))
+    return np.array(traj)
 
 
-def get_dead_reckoning_poses(dataset, dynamics):
+def get_dead_reckoning_traj(dataset, dynamics):
     """
-    Return ts, xs, ys, thetas given by dynamics model.
+    Return trajectory given by dynamics model.
+
+    The trajectory is an array with (time, x, y, theta) rows.
     """
     control_ts, velocities, steerings = get_controls(dataset)
-    my_ts = [0.0]
-    my_xs = [dataset.init_x]
-    my_ys = [dataset.init_y]
-    my_thetas = [dataset.init_angle]
+    traj = np.empty((1 + len(control_ts), 4))
+    traj[0] = (0.0, dataset.init_x, dataset.init_y, dataset.init_angle)
+    prev_time = 0.0
     prev_state = [
         dataset.init_x, dataset.init_y, dataset.init_angle,
         0, 0, 0,
         None, None]
     for i in xrange(len(control_ts)):
-        delta_t = control_ts[i] - my_ts[-1]
-        # delta_t = max(delta_t - 0.001, 0.00001)
+        delta_t = control_ts[i] - prev_time
         assert delta_t > 0
         new_state = dynamics(
             dataset, prev_state, velocities[i],
             steerings[i], delta_t)
-        my_ts.append(control_ts[i])
-        my_xs.append(new_state[0])
-        my_ys.append(new_state[1])
-        my_thetas.append(new_state[2])
+        traj[i + 1][0] = control_ts[i]
+        traj[i + 1][1:] = new_state[:3]
+        prev_time = control_ts[i]
         prev_state = new_state
-    return my_ts, my_xs, my_ys, my_thetas
+    return traj
 
 
 def demo(dataset_name):
@@ -189,10 +184,10 @@ def demo(dataset_name):
     # Ground-truth trajectory vs trajectory from dynamics model:
     fig1 = plt.figure()
     ax1 = fig1.add_subplot(111)
-    gps_poses = get_ground_truth_poses(dataset)
-    plot_traj(ax1, 'ground', *gps_poses)
-    dr_poses = get_dead_reckoning_poses(dataset, dynamics)
-    plot_traj(ax1, 'dead-reckoning', *dr_poses)
+    gps_traj = get_ground_truth_traj(dataset)
+    ax1.plot(gps_traj[:, 1], gps_traj[:, 2], label='ground')
+    dr_traj = get_dead_reckoning_traj(dataset, dynamics)
+    ax1.plot(dr_traj[:, 1], dr_traj[:, 2], label='dead-reckoning')
     ax1.set_xlim(X_MIN - 1, X_MAX + 1)
     ax1.set_ylim(Y_MIN - 1, Y_MAX + 1)
     ax1.legend()
@@ -200,7 +195,7 @@ def demo(dataset_name):
     # Components of ground-truth trajectory vs my trajectory:
     controls = get_controls(dataset)
     fig2 = plt.figure()
-    plot_components(fig2, 'ground', gps_poses, dr_poses, controls)
+    plot_components(fig2, 'ground', gps_traj, dr_traj, controls)
 
     plt.show()
 

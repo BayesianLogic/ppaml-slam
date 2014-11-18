@@ -3,10 +3,7 @@ from ppaml_car.data import X_MIN
 from ppaml_car.data import X_MAX
 from ppaml_car.data import Y_MIN
 from ppaml_car.data import Y_MAX
-from ppaml_car.draw_dr import dynamics
-from ppaml_car.draw_dr import get_dead_reckoning_poses
-from ppaml_car.draw_dr import get_ground_truth_poses
-from ppaml_car.draw_dr import plot_traj
+from ppaml_car import draw_dr
 from ppaml_car.fast import readings_for_obstacles
 from ppaml_car.lasers import car_loc_to_laser_loc
 from ppaml_car.lasers import default_laser_angles
@@ -150,10 +147,10 @@ class LocPF(PF):
         plt.colorbar(x, ax=self.ax1)
 
         # Plot ground-truth and dead-reckoning trajectories.
-        gps_poses = get_ground_truth_poses(dataset)
-        plot_traj(self.ax1, 'ground', *gps_poses)
-        dr_poses = get_dead_reckoning_poses(dataset, dynamics)
-        plot_traj(self.ax1, 'dead-reckoning', *dr_poses)
+        gps_traj = draw_dr.get_ground_truth_traj(dataset)
+        self.ax1.plot(gps_traj[:, 1], gps_traj[:, 2], label='ground')
+        dr_traj = draw_dr.get_dead_reckoning_traj(dataset, draw_dr.dynamics)
+        self.ax1.plot(dr_traj[:, 1], dr_traj[:, 2], label='dead-reckoning')
         plot_obstacles(self.obstacles, self.ax1)
 
         self.ax1.set_xlim(X_MIN - 1, X_MAX + 1)
@@ -178,8 +175,10 @@ class LocPF(PF):
             delta_t = (
                 self.dataset.timestamps[self.current_ts] -
                 self.dataset.timestamps[self.last_control_ts])
-            new_state = dynamics(
+            new_state = draw_dr.dynamics(
                 self.dataset, old_state, velocity, steering, delta_t)
+            # Experiment with ignoring controls entirely:
+            # new_state = old_state
             noise = self.sample_dynamics_noise()
             new_state[0] += noise[0]
             new_state[1] += noise[1]
@@ -352,9 +351,6 @@ class LocPF(PF):
                 ground_gps_llik = self.logweigh_particle(LocPFParticle(
                         ground_gps[0], ground_gps[1], ground_gps[2],
                         0, 0, 0, self.obstacles))
-                if ground_gps_llik < -1000:
-                    import ipdb; ipdb.set_trace()  # XXX
-
                 self.ground_gps_lliks.append(ground_gps_llik)
                 if self.ground_gps_lliks_line:
                     self.ground_gps_lliks_line.remove()
