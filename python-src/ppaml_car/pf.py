@@ -139,14 +139,15 @@ class LocPF(PF):
             self.obstacles.append((x, y, obstacle_radius))
         self.obstacles = np.array(self.obstacles)
 
-        self.fig1 = plt.figure()
-        self.ax1 = self.fig1.add_subplot(111)
+        self.fig1 = plt.figure(figsize=(8, 12))
+        self.ax1 = self.fig1.add_subplot(211)
+        self.ax2 = self.fig1.add_subplot(212)
 
         # Hack to display colorbar for angle.
         a = np.array([[-np.pi, np.pi]])
         x = plt.pcolor(a)
         self.ax1.clear()
-        plt.colorbar(x)
+        plt.colorbar(x, ax=self.ax1)
 
         # Plot ground-truth and dead-reckoning trajectories.
         gps_poses = get_ground_truth_poses(dataset)
@@ -243,6 +244,16 @@ class LocPF(PF):
     def hook_after_initialize(self):
         self.old_scatter = None
         self.old_gps = None
+        self.gps_timesteps = []
+        self.ground_gps_traj = []
+        self.ground_gps_lliks = []
+        self.ground_gps_lliks_line = None
+        self.map_traj = []
+        self.map_lliks = []
+        self.map_lliks_line = None
+        self.old_map_traj_line = None
+        self.plot_xs = []
+        self.plot_counter = 0
 
     def hook_after_advance(self, new_particles, norm_logweights):
         self.debug_new_particles = new_particles
@@ -278,48 +289,89 @@ class LocPF(PF):
                 max_logweight,
                 np.exp(max_logweight)))
 
-        # Plotting is slow, so don't do it at every time step.
-        if self.current_ts % 20 == 0:
-        # if True:
-            all_particles = []
-            for particle in self.particles:
-                assert -np.pi <= particle.theta <= np.pi
-                all_particles.append((particle.x, particle.y, particle.theta))
-            all_particles = np.array(all_particles)
-            if self.old_scatter:
-                self.old_scatter.remove()
-            self.old_scatter = self.ax1.scatter(
-                all_particles[:, 0],
-                all_particles[:, 1],
-                c=all_particles[:, 2],
-                s=10,
-                linewidths=0,
-                vmin=-np.pi,
-                vmax=np.pi,
-                label='all particles')
-
+        if self.dataset.ts2sensor[self.current_ts] == 'gps':
+            self.gps_timesteps.append(self.current_ts)
+            self.ground_gps_traj.append(
+                self.dataset.ground_ts2gps[self.current_ts])
             best_i = np.argmax(self.debug_logweights)
             best_particle = self.debug_new_particles[best_i]
-            print "best_particle = {}".format(
-                [best_particle.x, best_particle.y, best_particle.theta])
+            self.map_traj.append(
+                (best_particle.x, best_particle.y, best_particle.theta))
+            # TODO avg_traj
 
-            # Plot the last known ground GPS location.
-            for i in xrange(self.current_ts - 1, -1, -1):
-                if self.dataset.ts2sensor[i] == 'gps':
-                    ground_gps = self.dataset.ground_ts2gps[i]
-                    print "ground_gps = {}".format(ground_gps)
-                    print "dx = {};  dy = {};  dtheta = {}".format(
-                        best_particle.x - ground_gps[0],
-                        best_particle.y - ground_gps[1],
-                        best_particle.theta - ground_gps[2])
-                    if self.old_gps:
-                        self.old_gps.remove()
-                    self.old_gps = self.ax1.scatter(
-                        [ground_gps[0]], [ground_gps[1]], marker='x')
-                    break
+        # Plotting is slow, so don't do it at every time step.
+        if self.dataset.ts2sensor[self.current_ts] == 'laser':
+            self.plot_counter += 1
+            if self.plot_counter % 20 == 0:
+            # if True:
+                all_particles = []
+                for particle in self.particles:
+                    assert -np.pi <= particle.theta <= np.pi
+                    all_particles.append((
+                        particle.x, particle.y, particle.theta))
+                all_particles = np.array(all_particles)
+                if self.old_scatter:
+                    self.old_scatter.remove()
+                self.old_scatter = self.ax1.scatter(
+                    all_particles[:, 0],
+                    all_particles[:, 1],
+                    c=all_particles[:, 2],
+                    s=10,
+                    linewidths=0,
+                    vmin=-np.pi,
+                    vmax=np.pi,
+                    label='all particles')
 
-            plt.draw()
-            # raw_input()
+                best_i = np.argmax(self.debug_logweights)
+                best_particle = self.debug_new_particles[best_i]
+                print "best_particle = {}".format(
+                    [best_particle.x, best_particle.y, best_particle.theta])
+
+                # Plot the last known ground GPS location.
+                ground_gps = self.ground_gps_traj[-1]
+                ground_gps_ts = self.gps_timesteps[-1]
+                print "ground_gps = {}".format(ground_gps)
+                print "dx = {};  dy = {};  dtheta = {}".format(
+                    best_particle.x - ground_gps[0],
+                    best_particle.y - ground_gps[1],
+                    best_particle.theta - ground_gps[2])
+                if self.old_gps:
+                    self.old_gps.remove()
+                self.old_gps = self.ax1.scatter(
+                    [ground_gps[0]], [ground_gps[1]], marker='x')
+
+                # Update MAP trajectory plot.
+                if self.old_map_traj_line:
+                    self.old_map_traj_line.remove()
+                self.old_map_traj_line = self.ax1.plot(
+                    [pose[0] for pose in self.map_traj],
+                    [pose[1] for pose in self.map_traj], 'r')[0]
+
+                # Update plot of ground_gps lliks.
+                self.plot_xs.append(ground_gps_ts)
+                ground_gps_llik = self.logweigh_particle(LocPFParticle(
+                        ground_gps[0], ground_gps[1], ground_gps[2],
+                        0, 0, 0, self.obstacles))
+                if ground_gps_llik < -1000:
+                    import ipdb; ipdb.set_trace()  # XXX
+
+                self.ground_gps_lliks.append(ground_gps_llik)
+                if self.ground_gps_lliks_line:
+                    self.ground_gps_lliks_line.remove()
+                self.ground_gps_lliks_line = self.ax2.plot(
+                    self.plot_xs, self.ground_gps_lliks, 'g')[0]
+
+                # Update plot of best_particle lliks.
+                # Note: have to recompute llik, because logweights are scaled.
+                map_llik = self.logweigh_particle(best_particle)
+                self.map_lliks.append(map_llik)
+                if self.map_lliks_line:
+                    self.map_lliks_line.remove()
+                self.map_lliks_line = self.ax2.plot(
+                    self.plot_xs, self.map_lliks, 'r')[0]
+
+                plt.draw()
+                # raw_input()
 
 
 # FIXME:
@@ -335,6 +387,10 @@ class LocPF(PF):
 # - when considering a laser reading in logweigh_particle(), does not cause
 # particles to advance to that time, so particles are a little bit in the past,
 # when the last control reading was processed.
+#
+# - laser readings are not independent of one another... nearby readings are
+# highly correlated, which means we might give too much weight to a
+# misalignment that spans multiple rays?
 
 
 def normalize_radians(theta):
@@ -360,10 +416,11 @@ def demo(dataset_name, num_particles):
     dataset = Dataset.read(dataset_name)
     pf = LocPF(dataset, num_particles)
     pf.run()
+    return pf
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         raise RuntimeError(
             "Usage example: {} 1_straight num_particles".format(sys.argv[0]))
-    demo(sys.argv[1], int(sys.argv[2]))
+    pf = demo(sys.argv[1], int(sys.argv[2]))
