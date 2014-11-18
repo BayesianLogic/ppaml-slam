@@ -124,7 +124,8 @@ class LocPF(PF):
         super(LocPF, self).__init__(num_particles)
         self.dataset = dataset
         self.last_control_ts = 0
-        self.dyn_noise_stdev = 0.03
+        self.velocity_noise_stdev = 0.1
+        self.steering_noise_stdev = 0.3
         self.obs_cov_scale = 30.0
         self.laser_angles = default_laser_angles()
         self.laser_max_range = default_laser_max_range()
@@ -172,28 +173,22 @@ class LocPF(PF):
                 particle.xdot, particle.ydot, particle.thetadot,
                 None, None]
             velocity, steering = self.dataset.ts2control[self.current_ts]
+            velocity += np.random.normal(
+                loc=0.0, scale=self.velocity_noise_stdev)
+            steering += np.random.normal(
+                loc=0.0, scale=self.steering_noise_stdev)
+            steering = normalize_radians(steering)
             delta_t = (
                 self.dataset.timestamps[self.current_ts] -
                 self.dataset.timestamps[self.last_control_ts])
             new_state = draw_dr.dynamics(
                 self.dataset, old_state, velocity, steering, delta_t)
-            # Experiment with ignoring controls entirely:
-            # new_state = old_state
-            noise = self.sample_dynamics_noise()
-            new_state[0] += noise[0]
-            new_state[1] += noise[1]
-            new_state[2] += noise[2]
-            new_state[2] = normalize_radians(new_state[2])
-            self.last_control_ts = self.current_ts
             return LocPFParticle(
                 new_state[0], new_state[1], new_state[2],
                 new_state[3], new_state[4], new_state[5],
                 particle.obstacles)
         else:
             return particle.clone()
-
-    def sample_dynamics_noise(self):
-        return np.random.normal(loc=0.0, scale=self.dyn_noise_stdev, size=3)
 
     def logweigh_particle(self, particle):
         logweight = 0.0
@@ -277,6 +272,12 @@ class LocPF(PF):
         #     print "particle at {}".format((p.x, p.y, p.theta))
 
     def hook_after_step(self):
+        # This is needed for advance_particle() to work correctly.
+        if self.dataset.ts2sensor[self.current_ts] == 'control':
+            self.last_control_ts = self.current_ts
+
+        # Everything below is plotting and output; not needed for correctness.
+
         max_logweight = np.max(self.debug_logweights)
         print (
             "finished timestep {} of {} (sensor={})"
