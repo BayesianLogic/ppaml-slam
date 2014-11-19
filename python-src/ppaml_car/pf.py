@@ -130,9 +130,9 @@ class LocPF(PF):
         self.steering_noise_stdev = 0.3
 
         self.add_dynamics_noise = True
-        self.x_noise_stdev = 0.001
-        self.y_noise_stdev = 0.001
-        self.theta_noise_stdev = 0.0005
+        self.x_noise_stdev = 0.003
+        self.y_noise_stdev = 0.003
+        self.theta_noise_stdev = 0.0015
 
         self.obs_cov_scale = 30.0
         self.laser_angles = default_laser_angles()
