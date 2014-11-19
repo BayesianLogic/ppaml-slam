@@ -147,13 +147,27 @@ class LocPF(PF):
 
         self.fig1 = plt.figure(figsize=(8, 12))
         self.ax1 = self.fig1.add_subplot(211)
-        self.ax2 = self.fig1.add_subplot(212)
+        self.ax2 = self.fig1.add_subplot(413)
+        self.ax3 = self.fig1.add_subplot(414)
 
         # Hack to display colorbar for angle.
+        plt.sca(self.ax1)
         a = np.array([[-np.pi, np.pi]])
         x = plt.pcolor(a)
         self.ax1.clear()
         plt.colorbar(x, ax=self.ax1)
+
+        # Hack to display legends for the bottom plots.
+        dummy_lines = []
+        dummy_lines += self.ax2.plot(
+            [0, 0], [0, 0], 'g', label='ground_gps_llik')
+        dummy_lines += self.ax2.plot(
+            [0, 0], [0, 0], 'r', label='best_particle_llik')
+        self.ax2.legend()
+        dummy_lines += self.ax3.plot([0, 0], [0, 0], label='error^2')
+        self.ax3.legend()
+        for line in dummy_lines:
+            line.remove()
 
         # Plot ground-truth and dead-reckoning trajectories.
         gps_traj = draw_dr.get_ground_truth_traj(dataset)
@@ -269,6 +283,8 @@ class LocPF(PF):
         self.map_traj = []
         self.map_lliks = []
         self.map_lliks_line = None
+        self.err2s = []
+        self.err2_line = None
         self.old_map_traj_line = None
         self.plot_xs = []
         self.plot_counter = 0
@@ -390,6 +406,16 @@ class LocPF(PF):
                     self.map_lliks_line.remove()
                 self.map_lliks_line = self.ax2.plot(
                     self.plot_xs, self.map_lliks, 'r')[0]
+
+                # Update plot of pose error.
+                dx = ground_gps[0] - best_particle.x
+                dy = ground_gps[1] - best_particle.y
+                err2 = dx * dx + dy * dy
+                self.err2s.append(err2)
+                if self.err2_line:
+                    self.err2_line.remove()
+                self.err2_line = self.ax3.plot(
+                    self.plot_xs, self.err2s, 'b')[0]
 
                 plt.draw()
                 # raw_input()
