@@ -8,7 +8,6 @@ from ppaml_car.fast import readings_for_obstacles
 from ppaml_car.lasers import car_loc_to_laser_loc
 from ppaml_car.lasers import default_laser_angles
 from ppaml_car.lasers import default_laser_max_range
-from ppaml_car.lasers import plot_lasers
 from ppaml_car.lasers import plot_obstacles
 
 from numutil import logaddexp_many
@@ -243,34 +242,10 @@ class LocPF(PF):
             logweight = norm_log_pdf_id_cov(
                 obs_lasers, true_lasers, self.obs_cov_scale)
 
-            if False:
-            # if self.particles[0].x != self.particles[1].x:
-                plt.figure('true_lasers')
-                plt.gca().clear()
-                plot_lasers(
-                    laser_x, laser_y, laser_theta,
-                    self.laser_angles, self.laser_max_range,
-                    particle.obstacles, true_lasers, plt.gca())
-
-                plt.figure('obs_lasers')
-                plt.gca().clear()
-                plot_lasers(
-                    laser_x, laser_y, laser_theta,
-                    self.laser_angles, self.laser_max_range,
-                    particle.obstacles, obs_lasers, plt.gca())
-
-                plt.figure('difference')
-                plt.gca().clear()
-                plt.plot(true_lasers, 'g')
-                plt.plot(obs_lasers, 'r')
-
-                print "logweight {}".format(logweight)
-                raw_input()
-
         return logweight
 
     def have_more_data(self):
-        # return self.current_ts < 500
+        # return self.current_ts < 5000
         return self.current_ts < len(self.dataset.timestamps)
 
     def hook_after_initialize(self):
@@ -342,8 +317,10 @@ class LocPF(PF):
         # Plotting is slow, so don't do it at every time step.
         if self.dataset.ts2sensor[self.current_ts] == 'laser':
             self.plot_counter += 1
-            if self.plot_counter % 20 == 0:
-            # if True:
+            do_draw = (self.plot_counter % 100 == 0)
+
+            # Scatterplot particles.
+            if do_draw:
                 all_particles = []
                 for particle in self.particles:
                     assert -np.pi <= particle.theta <= np.pi
@@ -362,14 +339,15 @@ class LocPF(PF):
                     vmax=np.pi,
                     label='all particles')
 
-                best_i = np.argmax(self.debug_logweights)
-                best_particle = self.debug_new_particles[best_i]
-                print "best_particle = {}".format(
-                    [best_particle.x, best_particle.y, best_particle.theta])
+            best_i = np.argmax(self.debug_logweights)
+            best_particle = self.debug_new_particles[best_i]
+            print "best_particle = {}".format(
+                [best_particle.x, best_particle.y, best_particle.theta])
 
-                # Plot the last known ground GPS location.
-                ground_gps = self.ground_gps_traj[-1]
-                ground_gps_ts = self.gps_timesteps[-1]
+            # Plot the last known ground GPS location.
+            ground_gps = self.ground_gps_traj[-1]
+            ground_gps_ts = self.gps_timesteps[-1]
+            if do_draw:
                 print "ground_gps = {}".format(ground_gps)
                 print "dx = {};  dy = {};  dtheta = {}".format(
                     best_particle.x - ground_gps[0],
@@ -380,43 +358,48 @@ class LocPF(PF):
                 self.old_gps = self.ax1.scatter(
                     [ground_gps[0]], [ground_gps[1]], marker='x')
 
-                # Update MAP trajectory plot.
+            # Update MAP trajectory plot.
+            if do_draw:
                 if self.old_map_traj_line:
                     self.old_map_traj_line.remove()
                 self.old_map_traj_line = self.ax1.plot(
                     [pose[0] for pose in self.map_traj],
                     [pose[1] for pose in self.map_traj], 'r')[0]
 
-                # Update plot of ground_gps lliks.
-                self.plot_xs.append(ground_gps_ts)
-                ground_gps_llik = self.logweigh_particle(LocPFParticle(
-                        ground_gps[0], ground_gps[1], ground_gps[2],
-                        0, 0, 0, self.obstacles))
-                self.ground_gps_lliks.append(ground_gps_llik)
+            # Update plot of ground_gps lliks.
+            self.plot_xs.append(ground_gps_ts)
+            ground_gps_llik = self.logweigh_particle(LocPFParticle(
+                    ground_gps[0], ground_gps[1], ground_gps[2],
+                    0, 0, 0, self.obstacles))
+            self.ground_gps_lliks.append(ground_gps_llik)
+            if do_draw:
                 if self.ground_gps_lliks_line:
                     self.ground_gps_lliks_line.remove()
                 self.ground_gps_lliks_line = self.ax2.plot(
                     self.plot_xs, self.ground_gps_lliks, 'g')[0]
 
-                # Update plot of best_particle lliks.
-                # Note: have to recompute llik, because logweights are scaled.
-                map_llik = self.logweigh_particle(best_particle)
-                self.map_lliks.append(map_llik)
+            # Update plot of best_particle lliks.
+            # Note: have to recompute llik, because logweights are scaled.
+            map_llik = self.logweigh_particle(best_particle)
+            self.map_lliks.append(map_llik)
+            if do_draw:
                 if self.map_lliks_line:
                     self.map_lliks_line.remove()
                 self.map_lliks_line = self.ax2.plot(
                     self.plot_xs, self.map_lliks, 'r')[0]
 
-                # Update plot of pose error.
-                dx = ground_gps[0] - best_particle.x
-                dy = ground_gps[1] - best_particle.y
-                err2 = dx * dx + dy * dy
-                self.err2s.append(err2)
+            # Update plot of pose error.
+            dx = ground_gps[0] - best_particle.x
+            dy = ground_gps[1] - best_particle.y
+            err2 = dx * dx + dy * dy
+            self.err2s.append(err2)
+            if do_draw:
                 if self.err2_line:
                     self.err2_line.remove()
                 self.err2_line = self.ax3.plot(
                     self.plot_xs, self.err2s, 'b')[0]
 
+            if do_draw:
                 plt.draw()
                 # raw_input()
 
