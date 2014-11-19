@@ -62,3 +62,17 @@ def logaddexp_many(vals):
     for i in xrange(1, len(vals)):
         result = np.logaddexp(result, vals[i])
     return result
+
+
+def normalize_radians(theta):
+    """
+    Bring angle within [-np.pi, np.pi).
+
+    Currently works only if theta is less than 2*pi off.
+    """
+    if theta < -np.pi:
+        theta += 2 * np.pi
+    elif theta >= np.pi:
+        theta -= 2 * np.pi
+    assert -np.pi <= theta < np.pi
+    return theta

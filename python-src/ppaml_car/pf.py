@@ -12,6 +12,7 @@ from ppaml_car.lasers import plot_obstacles
 
 from numutil import logaddexp_many
 from numutil import norm_log_pdf_id_cov
+from numutil import normalize_radians
 import matplotlib.pyplot as plt
 import numpy as np
 import random
@@ -99,19 +100,15 @@ class LocPFParticle(object):
     """
     Particle for LocPF.
     """
-    def __init__(self, x, y, theta, xdot, ydot, thetadot, obstacles):
+    def __init__(self, x, y, theta, obstacles):
         self.x = x
         self.y = y
         self.theta = theta
-        self.xdot = xdot
-        self.ydot = ydot
-        self.thetadot = thetadot
         self.obstacles = obstacles
 
     def clone(self):
         return LocPFParticle(
             self.x, self.y, self.theta,
-            self.xdot, self.ydot, self.thetadot,
             self.obstacles)
 
 
@@ -184,15 +181,11 @@ class LocPF(PF):
     def new_particle_from_prior(self):
         return LocPFParticle(
             self.dataset.init_x, self.dataset.init_y, self.dataset.init_angle,
-            0.0, 0.0, 0.0,
             self.obstacles)
 
     def advance_particle(self, particle):
         if self.dataset.ts2sensor[self.current_ts] == 'control':
-            old_state = [
-                particle.x, particle.y, particle.theta,
-                particle.xdot, particle.ydot, particle.thetadot,
-                None, None]
+            old_state = [particle.x, particle.y, particle.theta]
             velocity, steering = self.dataset.ts2control[self.current_ts]
 
             # Add controls noise:
@@ -222,8 +215,7 @@ class LocPF(PF):
 
             return LocPFParticle(
                 new_state[0], new_state[1], new_state[2],
-                new_state[3], new_state[4], new_state[5],
-                particle.obstacles)
+                self.obstacles)
         else:
             return particle.clone()
 
@@ -369,8 +361,7 @@ class LocPF(PF):
             # Update plot of ground_gps lliks.
             self.plot_xs.append(ground_gps_ts)
             ground_gps_llik = self.logweigh_particle(LocPFParticle(
-                    ground_gps[0], ground_gps[1], ground_gps[2],
-                    0, 0, 0, self.obstacles))
+                ground_gps[0], ground_gps[1], ground_gps[2], self.obstacles))
             self.ground_gps_lliks.append(ground_gps_llik)
             if do_draw:
                 if self.ground_gps_lliks_line:
@@ -410,10 +401,6 @@ class LocPF(PF):
 # not necessary (where advance_particle returns the particles unchanged, and
 # logweigh_particle returns uniform weights).
 #
-# - java code uses new_xdot etc and keeps only (x, y, theta) as state; python
-# code uses the old xdot etc and keeps (x, y, theta, xdot, ydot, thetadot) as
-# state.
-#
 # - when considering a laser reading in logweigh_particle(), does not cause
 # particles to advance to that time, so particles are a little bit in the past,
 # when the last control reading was processed.
@@ -421,18 +408,6 @@ class LocPF(PF):
 # - laser readings are not independent of one another... nearby readings are
 # highly correlated, which means we might give too much weight to a
 # misalignment that spans multiple rays?
-
-
-def normalize_radians(theta):
-    """
-    Bring angle within [-np.pi, np.pi).
-    """
-    if theta < -np.pi:
-        theta += 2 * np.pi
-    elif theta >= np.pi:
-        theta -= 2 * np.pi
-    assert -np.pi <= theta < np.pi
-    return theta
 
 
 def demo(dataset_name, num_particles):

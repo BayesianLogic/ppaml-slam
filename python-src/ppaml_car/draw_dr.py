@@ -4,6 +4,7 @@
 Draw GPS trajectory and dead-reckoning trajectory computed from the controls.
 """
 
+from numutil import normalize_radians
 from ppaml_car.data import Dataset
 from ppaml_car.data import X_MIN
 from ppaml_car.data import X_MAX
@@ -22,8 +23,7 @@ def dynamics(dataset, old_state, encoder_velocity, steering_angle, delta_t):
     The model is taken from guivant_2006, equations 5 and 6.
     The model is non-linear and noise-free.
 
-    state is assumed to be a column vector of [x, y, theta, xdot, ydot,
-    thetadot, obst_x, obst_y].
+    state is assumed to be a column vector of [x, y, theta].
 
     steering_angle is in radians.
     """
@@ -31,42 +31,31 @@ def dynamics(dataset, old_state, encoder_velocity, steering_angle, delta_t):
     # print
     # print "controls:", encoder_velocity, steering_angle
     # print "old_state:", old_state
-    [x, y, theta, xdot, ydot, thetadot, obst_x, obst_y] = old_state
+    x, y, theta = old_state
 
     # Translate velocity from encoder to center of back axle:
     velocity = encoder_velocity / (1 - np.tan(steering_angle) * h / L)
 
     # Compute new xdot, ydot, thetadot:
-    new_xdot = (
+    xdot = (
         velocity * np.cos(theta) -
         (velocity / L) *
         (a * np.sin(theta) + b * np.cos(theta)) *
         np.tan(steering_angle))
-    new_ydot = (
+    ydot = (
         velocity * np.sin(theta) +
         (velocity / L) *
         (a * np.cos(theta) - b * np.sin(theta)) *
         np.tan(steering_angle))
-    new_thetadot = (velocity / L) * np.tan(steering_angle)
+    thetadot = (velocity / L) * np.tan(steering_angle)
 
     # Compute new x, y, theta:
     new_x = x + delta_t * xdot
     new_y = y + delta_t * ydot
     new_theta = theta + delta_t * thetadot
-    if new_theta > np.pi:
-        new_theta -= 2 * np.pi
-    elif new_theta < -np.pi:
-        new_theta += 2 * np.pi
+    new_theta = normalize_radians(new_theta)
 
-    # The obstacles stay the same:
-    new_obst_x = obst_x
-    new_obst_y = obst_y
-
-    new_state = [
-        new_x, new_y, new_theta,
-        new_xdot, new_ydot, new_thetadot,
-        new_obst_x, new_obst_y,
-    ]
+    new_state = [new_x, new_y, new_theta]
     # print "new_state:", new_state
     return new_state
 
@@ -158,10 +147,7 @@ def get_dead_reckoning_traj(dataset, dynamics):
     traj = np.empty((1 + len(control_ts), 4))
     traj[0] = (0.0, dataset.init_x, dataset.init_y, dataset.init_angle)
     prev_time = 0.0
-    prev_state = [
-        dataset.init_x, dataset.init_y, dataset.init_angle,
-        0, 0, 0,
-        None, None]
+    prev_state = [dataset.init_x, dataset.init_y, dataset.init_angle]
     for i in xrange(len(control_ts)):
         delta_t = control_ts[i] - prev_time
         assert delta_t > 0
@@ -169,7 +155,7 @@ def get_dead_reckoning_traj(dataset, dynamics):
             dataset, prev_state, velocities[i],
             steerings[i], delta_t)
         traj[i + 1][0] = control_ts[i]
-        traj[i + 1][1:] = new_state[:3]
+        traj[i + 1][1:] = new_state[:]
         prev_time = control_ts[i]
         prev_state = new_state
     return traj
