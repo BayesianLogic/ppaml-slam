@@ -7,19 +7,4 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 export PYTHONPATH="${DIR}/python-src"
 echo "PYTHONPATH=${PYTHONPATH}"
 
-# Set up CLASSPATH:
-# FIXME: This hardcodes the path to junit4.jar, because that is not included in
-# blog/target/universal/stage/lib for some reason. This is brittle. We should
-# probably transition to using SBT here too...
-export CLASSPATH="/usr/share/java/junit4.jar:${DIR}/blog/target/universal/stage/lib/*:${DIR}/java-src"
-echo "CLASSPATH=${CLASSPATH}"
-
-# For now, use the CLASSPATH for the main BLOG repo, not the submodule here.
-# FIXME: works only on my local machine; need to remove this when blog
-# stabilizes.
-# FIXME: document weird issue that requires putting java-cup-11b.jar before
-# jflex (jflex contains an older version of java-cup, and if that gets loaded
-# first, we get a bunch of weird java.lang.NoSuchMethodError errors).
-echo "ugly hacked classpath:"
-export CLASSPATH="/usr/share/java/junit4.jar:/home/cberzan/berkeley/blog/target/universal/stage/lib/java-cup-11b.jar:/home/cberzan/berkeley/blog/target/universal/stage/lib/*:${DIR}/java-src"
-echo "CLASSPATH=${CLASSPATH}"
+# No CLASSPATH setup; everything is handled using sbt.
