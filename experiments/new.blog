@@ -1,0 +1,64 @@
+//////////////////////////////////////////////////////////////////////////////
+// Parameters:
+
+random RealMatrix carParams ~ DontCare();
+random RealMatrix initialState ~ DontCare();
+random RealMatrix obstacles ~ DontCare();
+
+random Real velocity(Timestep timestep) ~ DontCare();
+random Real steering(Timestep timestep) ~ DontCare();
+random Real time(Timestep timestep) ~ DontCare();
+
+fixed RealMatrix dynamicsNoise = 0.00001 * eye(3);
+fixed RealMatrix laserNoise = 1000.0 * eye(361);
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Dynamics model:
+
+fixed RealMatrix dynamics(
+        RealMatrix carParams, RealMatrix old_state,
+        Real velocity, Real steering, Real deltaT)
+    = ppaml_car.DynamicsInterp();
+
+random RealMatrix stateWithoutNoise(Timestep timestep) ~
+    if timestep == @0 then initialState
+    else dynamics(
+            carParams, state(prev(timestep)),
+            velocity(timestep),
+            steering(timestep),
+            time(timestep) - time(timestep - 1));
+
+random RealMatrix state(Timestep timestep) ~
+    MultivarGaussian(stateWithoutNoise(timestep), dynamicsNoise);
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Observation model:
+
+fixed RealMatrix renderLasers(
+        Real laserX, Real laserY, Real laserTheta, RealMatrix obstacles)
+    = ppaml_car.LaserInterp();
+
+random Real laserX(Timestep timestep) ~
+    (toReal(state(timestep)[0]) +
+     toReal(carParams[0]) * cos(toReal(state(timestep)[2])) +
+     toReal(carParams[1]) * cos(toReal(state(timestep)[2]) + 0.5 * pi));
+
+random Real laserY(Timestep timestep) ~
+    (toReal(state(timestep)[1]) +
+     toReal(carParams[0]) * sin(toReal(state(timestep)[2])) +
+     toReal(carParams[1]) * sin(toReal(state(timestep)[2]) + 0.5 * pi));
+
+random Real laserTheta(Timestep timestep) ~
+    toReal(state(timestep)[2]);
+
+random RealMatrix laserReadingsWithoutNoise(Timestep timestep) ~
+    renderLasers(
+        laserX(timestep),
+        laserY(timestep),
+        laserTheta(timestep),
+        obstacles);
+
+random RealMatrix laserReadings(Timestep timestep) ~
+    MultivarGaussian(laserReadingsWithoutNoise(timestep), laserNoise);

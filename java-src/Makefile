@@ -1,7 +1,7 @@
 # This expects the CLASSPATH env var to be set properly.
 # setup_env does this.
 
-all: laser_standalone laser_glue dynamics_standalone dynamics_glue
+all: laser_standalone laser_glue dynamics_standalone dynamics_glue slam_feeder
 
 laser_standalone: ppaml_car/LaserLogic.java ppaml_car/TestLaserLogic.java
 	javac \
@@ -24,6 +24,9 @@ dynamics_glue: ppaml_car/DynamicsLogic.java ppaml_car/TestDynamicsLogic.java ppa
 		ppaml_car/DynamicsLogic.java \
 		ppaml_car/TestDynamicsLogic.java \
 		ppaml_car/DynamicsInterp.java
+
+slam_feeder: ppaml_car/SlamFeeder.scala
+	fsc ppaml_car/SlamFeeder.scala
 
 test:
 	java \
