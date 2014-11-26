@@ -1,10 +1,17 @@
 //////////////////////////////////////////////////////////////////////////////
+// Conventions:
+// - state is a column vector [x; y; theta].
+// - obstacles is a matrix where the rows are [x, y, r].
+
+
+//////////////////////////////////////////////////////////////////////////////
 // Parameters:
 
 random RealMatrix carParams ~ DontCare();
 random RealMatrix initialState ~ DontCare();
 random RealMatrix obstacles ~ DontCare();
 
+random Boolean haveControls(Timestep timestep) ~ DontCare();
 random Real velocity(Timestep timestep) ~ DontCare();
 random Real steering(Timestep timestep) ~ DontCare();
 random Real time(Timestep timestep) ~ DontCare();
@@ -20,6 +27,14 @@ fixed RealMatrix dynamics(
         RealMatrix carParams, RealMatrix old_state,
         Real velocity, Real steering, Real deltaT)
     = ppaml_car.DynamicsInterp();
+
+random Real velocityAtOrBefore(Timestep timestep) ~
+    if haveControls(timestep) then velocity(timestep)
+    else velocityAtOrBefore(timestep - 1);
+
+random Real steeringAtOrBefore(Timestep timestep) ~
+    if haveControls(timestep) then steering(timestep)
+    else steeringAtOrBefore(timestep - 1);
 
 random RealMatrix stateWithoutNoise(Timestep timestep) ~
     if timestep == @0 then initialState
