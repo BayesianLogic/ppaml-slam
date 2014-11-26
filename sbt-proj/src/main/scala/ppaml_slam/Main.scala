@@ -10,12 +10,14 @@ import blog.model.Model
 
 object Main {
   def main(args: Array[String]) = {
-    if (args.length != 1) {
+    if (args.length != 2) {
       throw new RuntimeException(
-        "Must provide exactly one argument: the path to the dataset")
+        "Usage: Main path_to_data_dir num_particles")
     }
-    Util.initRandom(false)
+    val dataDirPath = args(0)
+    val numParticles = args(1).toInt
 
+    Util.initRandom(false)
     val modelPath = getClass.getResource("new.blog").getPath
     val model = new Model()
     val dummyEvidence = new Evidence(model)
@@ -23,8 +25,8 @@ object Main {
     blog.Main.simpleSetupFromFiles(model, dummyEvidence, dummyQueries, modelPath :: Nil)
     // Any evidence and queries from the model are ignored.
     // All the evidence and queries come from the feeder.
-    val feeder = new SlamFeeder(model, args(0))
-    val pf = new ParticleFilter(model, 10, feeder)
+    val feeder = new SlamFeeder(model, dataDirPath)
+    val pf = new ParticleFilter(model, numParticles, feeder)
     pf.advanceUntilFinished
   }
 }
