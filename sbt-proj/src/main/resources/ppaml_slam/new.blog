@@ -39,9 +39,9 @@ random Real steeringAtOrBefore(Timestep timestep) ~
 random RealMatrix stateWithoutNoise(Timestep timestep) ~
     if timestep == @0 then initialState
     else dynamics(
-            carParams, state(prev(timestep)),
-            velocity(timestep),
-            steering(timestep),
+            carParams, state(timestep - 1),
+            velocityAtOrBefore(timestep),
+            steeringAtOrBefore(timestep),
             time(timestep) - time(timestep - 1));
 
 random RealMatrix state(Timestep timestep) ~
