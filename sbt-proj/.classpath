@@ -1,8 +1,10 @@
 <classpath>
   <classpathentry output="target/scala-2.10/classes" kind="src" path="src/main/scala"/>
   <classpathentry output="target/scala-2.10/classes" kind="src" path="src/main/java"/>
+  <classpathentry output="target/scala-2.10/classes" kind="src" path="src/main/resources"/>
   <classpathentry output="target/scala-2.10/test-classes" kind="src" path="src/test/scala"/>
   <classpathentry output="target/scala-2.10/test-classes" kind="src" path="src/test/java"/>
+  <classpathentry output="target/scala-2.10/test-classes" kind="src" path="src/test/resources"/>
   <classpathentry kind="lib" path="./lib/blog-0.9.1.jar"/>
   <classpathentry kind="lib" path="./lib/java-cup-11b.jar"/>
   <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
