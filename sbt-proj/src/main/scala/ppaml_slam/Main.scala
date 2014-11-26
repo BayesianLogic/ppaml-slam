@@ -1,3 +1,5 @@
+package ppaml_slam
+
 import scala.collection.JavaConversions._
 
 import blog.common.Util
@@ -5,7 +7,6 @@ import blog.debug.ParticleFilter
 import blog.model.Evidence
 import blog.model.Queries
 import blog.model.Model
-import ppaml_car.SlamFeeder
 
 object Main {
   def main(args: Array[String]) = {

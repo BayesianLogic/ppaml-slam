@@ -26,7 +26,7 @@ fixed RealMatrix laserNoise = 1000.0 * eye(361);
 fixed RealMatrix dynamics(
         RealMatrix carParams, RealMatrix old_state,
         Real velocity, Real steering, Real deltaT)
-    = ppaml_car.DynamicsInterp();
+    = ppaml_slam.DynamicsInterp();
 
 random Real velocityAtOrBefore(Timestep timestep) ~
     if haveControls(timestep) then velocity(timestep)
@@ -53,7 +53,7 @@ random RealMatrix state(Timestep timestep) ~
 
 fixed RealMatrix renderLasers(
         Real laserX, Real laserY, Real laserTheta, RealMatrix obstacles)
-    = ppaml_car.LaserInterp();
+    = ppaml_slam.LaserInterp();
 
 random Real laserX(Timestep timestep) ~
     (toReal(state(timestep)[0]) +

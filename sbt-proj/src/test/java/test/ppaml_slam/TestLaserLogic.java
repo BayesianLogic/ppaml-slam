@@ -1,4 +1,5 @@
-package ppaml_car;
+package test.ppaml_slam;
+import ppaml_slam.LaserLogic;
 
 import static org.junit.Assert.assertEquals;
 
