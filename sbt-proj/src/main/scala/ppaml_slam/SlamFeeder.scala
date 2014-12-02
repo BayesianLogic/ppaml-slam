@@ -64,15 +64,18 @@ class SlamFeeder(model: Model, dirPath: String) extends FilterFeeder {
       // Return next timestep from the dataset.
       // Note that the controls are provided at every timestep.
       // (BLOG itself cannot get them from older timestep, because of forgetting the past.)
+      // Also, the state is queried at every timestep.
+      // (Otherwise we get incorrect results because of forgetting the past; see
+      // https://github.com/BayesianLogic/blog/issues/330)
       val sensorLine = sensorReader.next
       val time = sensorLine(0).toDouble
       val sensor = code2sensor(sensorLine(1))
       evidence.addFromString(s"obs time(@$timestep) = $time;")
       evidence.addFromString(s"obs velocity(@$timestep) = $prevVelocity;")
       evidence.addFromString(s"obs steering(@$timestep) = $prevSteering;")
+      queries.addFromString(s"query time(@$timestep);")
+      queries.addFromString(s"query stateWithoutNoise(@$timestep);")
       if (sensor == 'gps) {
-        queries.addFromString(s"query time(@$timestep);")
-        queries.addFromString(s"query stateWithoutNoise(@$timestep);")
       } else if (sensor == 'control) {
         val controlLine = controlReader.next
         val controlTime = controlLine(0).toDouble
