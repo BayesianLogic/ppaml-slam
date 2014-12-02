@@ -104,11 +104,15 @@ class SlamFeeder(model: Model, dirPath: String) extends FilterFeeder {
   }
 
   def seqToBlogColVec(seq: Seq[Double]): String = {
+    "[ " + seq.mkString("; ") + "]"
+  }
+
+  def seqToBlogRowVec(seq: Seq[Double]): String = {
     "[ " + seq.mkString(", ") + "]"
   }
 
   def seqSeqToBlogMatrix(seqSeq: Seq[Seq[Double]]): String = {
-    "[\n    " + seqSeq.map(seqToBlogColVec).mkString(",\n    ") + "\n]"
+    "[\n    " + seqSeq.map(seqToBlogRowVec).mkString(",\n    ") + "\n]"
   }
 
 }
