@@ -29,11 +29,13 @@ fixed RealMatrix dynamics(
     = ppaml_slam.DynamicsInterp();
 
 random Real velocityAtOrBefore(Timestep timestep) ~
-    if haveControls(timestep) then velocity(timestep)
+    if timestep == @0 then 0.0
+    else if haveControls(timestep) then velocity(timestep)
     else velocityAtOrBefore(timestep - 1);
 
 random Real steeringAtOrBefore(Timestep timestep) ~
-    if haveControls(timestep) then steering(timestep)
+    if timestep == @0 then 0.0
+    else if haveControls(timestep) then steering(timestep)
     else steeringAtOrBefore(timestep - 1);
 
 random RealMatrix stateWithoutNoise(Timestep timestep) ~
