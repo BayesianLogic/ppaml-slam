@@ -11,7 +11,6 @@ random RealMatrix carParams ~ DontCare();
 random RealMatrix initialState ~ DontCare();
 random RealMatrix obstacles ~ DontCare();
 
-random Boolean haveControls(Timestep timestep) ~ DontCare();
 random Real velocity(Timestep timestep) ~ DontCare();
 random Real steering(Timestep timestep) ~ DontCare();
 random Real time(Timestep timestep) ~ DontCare();
@@ -28,22 +27,12 @@ fixed RealMatrix dynamics(
         Real velocity, Real steering, Real deltaT)
     = ppaml_slam.DynamicsInterp();
 
-random Real velocityAtOrBefore(Timestep timestep) ~
-    if timestep == @0 then 0.0
-    else if haveControls(timestep) then velocity(timestep)
-    else velocityAtOrBefore(timestep - 1);
-
-random Real steeringAtOrBefore(Timestep timestep) ~
-    if timestep == @0 then 0.0
-    else if haveControls(timestep) then steering(timestep)
-    else steeringAtOrBefore(timestep - 1);
-
 random RealMatrix stateWithoutNoise(Timestep timestep) ~
     if timestep == @0 then initialState
     else dynamics(
             carParams, state(timestep - 1),
-            velocityAtOrBefore(timestep),
-            steeringAtOrBefore(timestep),
+            velocity(timestep),
+            steering(timestep),
             time(timestep) - time(timestep - 1));
 
 random RealMatrix state(Timestep timestep) ~

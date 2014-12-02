@@ -44,6 +44,8 @@ class SlamFeeder(model: Model, dirPath: String) extends FilterFeeder {
   val obstacles = obstaclesReader.toList.map(obstaclesLineToObstacle)
 
   var timestep = -1
+  var prevVelocity = 0.0
+  var prevSteering = 0.0
 
   def hasNext: Boolean = sensorReader.hasNext
 
@@ -51,7 +53,7 @@ class SlamFeeder(model: Model, dirPath: String) extends FilterFeeder {
     val evidence = new Evidence(model)
     val queries = new Queries(model)
     val result = if (timestep == -1) {
-      // Return atemporal stuff.
+      // Return atemporal evidence.
       evidence.addFromString(
         s"obs carParams = [ $paramL; $paramH; $paramA; $paramB ];")
       evidence.addFromString(
@@ -60,28 +62,27 @@ class SlamFeeder(model: Model, dirPath: String) extends FilterFeeder {
       evidence.addFromString(s"obs obstacles = $obstaclesBlogStr;")
     } else {
       // Return next timestep from the dataset.
+      // Note that the controls are provided at every timestep.
+      // (BLOG itself cannot get them from older timestep, because of forgetting the past.)
       val sensorLine = sensorReader.next
       val time = sensorLine(0).toDouble
       val sensor = code2sensor(sensorLine(1))
       evidence.addFromString(s"obs time(@$timestep) = $time;")
+      evidence.addFromString(s"obs velocity(@$timestep) = $prevVelocity;")
+      evidence.addFromString(s"obs steering(@$timestep) = $prevSteering;")
       if (sensor == 'gps) {
-        evidence.addFromString(s"obs haveControls(@$timestep) = false;")
         queries.addFromString(s"query time(@$timestep);")
         queries.addFromString(s"query stateWithoutNoise(@$timestep);")
       } else if (sensor == 'control) {
         val controlLine = controlReader.next
         val controlTime = controlLine(0).toDouble
-        val velocity = controlLine(1).toDouble
-        val steering = controlLine(2).toDouble
+        prevVelocity = controlLine(1).toDouble
+        prevSteering = controlLine(2).toDouble
         assert (Math.abs(controlTime - time) < 1e-2)
-        evidence.addFromString(s"obs haveControls(@$timestep) = true;")
-        evidence.addFromString(s"obs velocity(@$timestep) = $velocity;")
-        evidence.addFromString(s"obs steering(@$timestep) = $steering;")
       } else if (sensor == 'laser) {
         val laserLine = laserReader.next
         val laserTime = laserLine(0).toDouble
         val laserVals = laserLine.drop(1).take(361).map((s) => s.toDouble)
-        evidence.addFromString(s"obs haveControls(@$timestep) = false;")
         val laserBlogStr = seqToBlogColVec(laserVals)
         assert (Math.abs(laserTime - time) < 1e-2)
         evidence.addFromString(
