@@ -43,7 +43,7 @@ def compute_error(ground_traj, my_traj):
     # Times should match.
     if ground_traj.shape != my_traj.shape:
         raise ValueError("ground_traj and my_traj must have the same shape")
-    if np.sum(np.abs(ground_traj[:, 0] - my_traj[:, 0])) > 1e-10:
+    if np.max(np.abs(ground_traj[:, 0] - my_traj[:, 0])) > 1e-2:
         raise ValueError("ground_traj and my_traj must have the same times")
 
     d = ground_traj[:, 1:3] - my_traj[:, 1:3]
