@@ -46,10 +46,12 @@ class SlamFeeder(model: Model, dirPath: String) extends FilterFeeder {
   var timestep = -1
   var prevVelocity = 0.0
   var prevSteering = 0.0
+  var prevTimestepWasGPS = false
 
   def hasNext: Boolean = sensorReader.hasNext
 
   def next: (Int, Evidence, Queries) = {
+    prevTimestepWasGPS = false
     val evidence = new Evidence(model)
     val queries = new Queries(model)
     val result = if (timestep == -1) {
@@ -76,6 +78,7 @@ class SlamFeeder(model: Model, dirPath: String) extends FilterFeeder {
       queries.addFromString(s"query time(@$timestep);")
       queries.addFromString(s"query stateWithoutNoise(@$timestep);")
       if (sensor == 'gps) {
+        prevTimestepWasGPS = true
       } else if (sensor == 'control) {
         val controlLine = controlReader.next
         val controlTime = controlLine(0).toDouble
