@@ -15,8 +15,8 @@ random Real velocity(Timestep timestep) ~ DontCare();
 random Real steering(Timestep timestep) ~ DontCare();
 random Real time(Timestep timestep) ~ DontCare();
 
-fixed RealMatrix dynamicsNoise = 0.00001 * eye(3);
-fixed RealMatrix laserNoise = 1000.0 * eye(361);
+fixed Real dynamicsCovScale = 0.00001;
+fixed Real laserCovScale = 1000.0;
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -36,7 +36,7 @@ random RealMatrix stateWithoutNoise(Timestep timestep) ~
             time(timestep) - time(timestep - 1));
 
 random RealMatrix state(Timestep timestep) ~
-    MultivarGaussian(stateWithoutNoise(timestep), dynamicsNoise);
+    IsotropicMultivarGaussian(stateWithoutNoise(timestep), dynamicsCovScale);
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -67,4 +67,4 @@ random RealMatrix laserReadingsWithoutNoise(Timestep timestep) ~
         obstacles);
 
 random RealMatrix laserReadings(Timestep timestep) ~
-    MultivarGaussian(laserReadingsWithoutNoise(timestep), laserNoise);
+    IsotropicMultivarGaussian(laserReadingsWithoutNoise(timestep), laserCovScale);
