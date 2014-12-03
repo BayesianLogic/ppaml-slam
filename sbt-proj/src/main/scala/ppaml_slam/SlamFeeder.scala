@@ -57,7 +57,7 @@ class SlamFeeder(model: Model, dirPath: String) extends FilterFeeder {
     val result = if (timestep == -1) {
       // Return atemporal evidence.
       evidence.addFromString(
-        s"obs carParams = [ $paramL; $paramH; $paramA; $paramB ];")
+        s"obs carParams = [ $paramA; $paramB; $paramH; $paramL ];")
       evidence.addFromString(
         s"obs initialState = [ $initX; $initY; $initTheta ];")
       val obstaclesBlogStr = seqSeqToBlogMatrix(obstacles)

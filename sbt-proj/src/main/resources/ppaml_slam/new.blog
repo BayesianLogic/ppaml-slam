@@ -1,5 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////
 // Conventions:
+// - carParams is a column vector [a; b; h; L].
 // - state is a column vector [x; y; theta].
 // - obstacles is a matrix where the rows are [x, y, r].
 
