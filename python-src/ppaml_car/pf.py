@@ -119,7 +119,8 @@ class LocPF(PF):
     def __init__(self, dataset, num_particles):
         super(LocPF, self).__init__(num_particles)
         self.dataset = dataset
-        self.last_control_ts = 0
+        self.current_velocity = 0.0
+        self.current_steering = 0.0
 
         self.add_controls_noise = False
         self.velocity_noise_stdev = 0.1
@@ -184,40 +185,41 @@ class LocPF(PF):
             self.obstacles)
 
     def advance_particle(self, particle):
-        if self.dataset.ts2sensor[self.current_ts] == 'control':
-            old_state = [particle.x, particle.y, particle.theta]
-            velocity, steering = self.dataset.ts2control[self.current_ts]
+        old_state = [particle.x, particle.y, particle.theta]
 
-            # Add controls noise:
-            if self.add_controls_noise:
-                velocity += np.random.normal(
-                    loc=0.0, scale=self.velocity_noise_stdev)
-                steering += np.random.normal(
-                    loc=0.0, scale=self.steering_noise_stdev)
-                steering = normalize_radians(steering)
+        velocity = self.current_velocity
+        steering = self.current_steering
 
-            # Dynamics update:
-            delta_t = (
-                self.dataset.timestamps[self.current_ts] -
-                self.dataset.timestamps[self.last_control_ts])
-            new_state = draw_dr.dynamics(
-                self.dataset, old_state, velocity, steering, delta_t)
+        # Add controls noise:
+        if self.add_controls_noise:
+            velocity += np.random.normal(
+                loc=0.0, scale=self.velocity_noise_stdev)
+            steering += np.random.normal(
+                loc=0.0, scale=self.steering_noise_stdev)
+            steering = normalize_radians(steering)
 
-            # Add dynamics noise:
-            if self.add_dynamics_noise:
-                new_state[0] += np.random.normal(
-                    loc=0.0, scale=self.x_noise_stdev)
-                new_state[1] += np.random.normal(
-                    loc=0.0, scale=self.y_noise_stdev)
-                new_state[2] += np.random.normal(
-                    loc=0.0, scale=self.theta_noise_stdev)
-                new_state[2] = normalize_radians(new_state[2])
+        # Dynamics update:
+        prev_timestamp = 0.0
+        if self.current_ts > 0:
+            prev_timestamp = self.dataset.timestamps[self.current_ts - 1]
+        delta_t = self.dataset.timestamps[self.current_ts] - prev_timestamp
+        assert delta_t > 0
+        new_state = draw_dr.dynamics(
+            self.dataset, old_state, velocity, steering, delta_t)
 
-            return LocPFParticle(
-                new_state[0], new_state[1], new_state[2],
-                self.obstacles)
-        else:
-            return particle.clone()
+        # Add dynamics noise:
+        if self.add_dynamics_noise:
+            new_state[0] += np.random.normal(
+                loc=0.0, scale=self.x_noise_stdev)
+            new_state[1] += np.random.normal(
+                loc=0.0, scale=self.y_noise_stdev)
+            new_state[2] += np.random.normal(
+                loc=0.0, scale=self.theta_noise_stdev)
+            new_state[2] = normalize_radians(new_state[2])
+
+        return LocPFParticle(
+            new_state[0], new_state[1], new_state[2],
+            self.obstacles)
 
     def logweigh_particle(self, particle):
         logweight = 0.0
@@ -281,7 +283,8 @@ class LocPF(PF):
     def hook_after_step(self):
         # This is needed for advance_particle() to work correctly.
         if self.dataset.ts2sensor[self.current_ts] == 'control':
-            self.last_control_ts = self.current_ts
+            self.current_velocity, self.current_steering = \
+                self.dataset.ts2control[self.current_ts]
 
         # Everything below is plotting and output; not needed for correctness.
 
