@@ -161,6 +161,35 @@ def get_dead_reckoning_traj(dataset, dynamics):
     return traj
 
 
+def get_alt_dead_reckoning_traj(dataset, dynamics):
+    """
+    Return trajectory given by dynamics model, computed in an alternative way.
+
+    Instead of only updating the pose on control timesteps, update it at every
+    timestep.
+
+    The trajectory is an array with (time, x, y, theta) rows.
+    """
+    traj = np.empty((1 + len(dataset.timestamps), 4))
+    traj[0] = (0.0, dataset.init_x, dataset.init_y, dataset.init_angle)
+    prev_velocity = 0.0
+    prev_steering = 0.0
+    prev_time = 0.0
+    prev_state = [dataset.init_x, dataset.init_y, dataset.init_angle]
+    for ts in xrange(len(dataset.timestamps)):
+        delta_t = dataset.timestamps[ts] - prev_time
+        assert delta_t > 0
+        new_state = dynamics(
+            dataset, prev_state, prev_velocity, prev_steering, delta_t)
+        traj[ts + 1][0] = dataset.timestamps[ts]
+        traj[ts + 1][1:] = new_state[:]
+        prev_time = dataset.timestamps[ts]
+        prev_state = new_state
+        if dataset.ts2sensor[ts] == 'control':
+            prev_velocity, prev_steering = dataset.ts2control[ts]
+    return traj
+
+
 def demo(dataset_name):
     """
     Read data and show true trajectory and trajectory given by dynamics model.
@@ -174,6 +203,8 @@ def demo(dataset_name):
     ax1.plot(gps_traj[:, 1], gps_traj[:, 2], label='ground')
     dr_traj = get_dead_reckoning_traj(dataset, dynamics)
     ax1.plot(dr_traj[:, 1], dr_traj[:, 2], label='dead-reckoning')
+    alt_dr_traj = get_alt_dead_reckoning_traj(dataset, dynamics)
+    ax1.plot(alt_dr_traj[:, 1], alt_dr_traj[:, 2], label='alt-dead-reckoning')
     ax1.set_xlim(X_MIN - 1, X_MAX + 1)
     ax1.set_ylim(Y_MIN - 1, Y_MAX + 1)
     ax1.legend()
