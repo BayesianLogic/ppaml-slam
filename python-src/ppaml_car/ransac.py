@@ -54,26 +54,3 @@ def extract_obstacles(
             cur_score = new_score
 
     return cur_obstacles
-
-
-        # # Pick three points near one another.
-        # index = np.random.randint(len(laser_angles))
-        # min_index = np.max(0, index - 10)
-        # max_index = np.min(len(laser_angles) - 1, index + 10)
-        # indices = range(min_index, max_index + 1)
-        # np.shuffle(indices)
-        # indices = indices[:3]
-        # points = [
-        #     ray_end(
-        #         laser_x, laser_y, laser_theta,
-        #         laser_angles[index], obs_lasers[index])
-        #     for index in indices]
-
-        # # Fit a circle through those three points.
-        # assert len(indices) == 3
-        # x, y, r = fit_circle(*points)
-
-        # # Fix the radius, and randomly perturb the circle a bit. If we get a
-        # # good increase in likelihood, save the circle as a new obstacle.
-        # r = known_radius
-        # for j in xrange(20):
