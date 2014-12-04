@@ -13,6 +13,9 @@ import csv
 import numpy as np
 import os
 
+from ppaml_car.lasers import plot_obstacles
+from slam_eval.slam_eval import obsticle_compare
+
 
 def read_csv(path):
     """
@@ -27,14 +30,6 @@ def read_csv(path):
         for line in reader:
             rows.append(map(float, line))
     return np.array(rows)
-
-
-def plot_traj(ax, label, traj):
-    """
-    Plot trajectory as a line in 2D.
-    """
-    # Traj has columns (time, lat, lon). Note x=lon, y=lat.
-    ax.plot(traj[:, 2], traj[:, 1], label=label)
 
 
 def compute_error(ground_traj, my_traj):
@@ -52,15 +47,7 @@ def compute_error(ground_traj, my_traj):
     return np.sum(norm2)
 
 
-if __name__ == "__main__":
-    # Parse command-line args.
-    parser = argparse.ArgumentParser(
-        description='Evaluate trajectory output by BLOG.')
-    parser.add_argument('eval_data_dir')
-    parser.add_argument('out_dir')
-    parser.add_argument('--plot', action='store_true')
-    args = parser.parse_args()
-
+def evaluate_trajectories(args):
     # Array with columns (time, lat, lon).
     # We get rid of the 4th orientation column.
     ground_traj = read_csv(os.path.join(args.eval_data_dir, 'eval_gps.csv'))
@@ -77,11 +64,52 @@ if __name__ == "__main__":
 
     # Optionally plot trajectories.
     if args.plot:
+        plt.plot(
+            ground_traj[:, 2], ground_traj[:, 1], label='ground', color='g')
+        plt.plot(
+            out_traj[:, 2], out_traj[:, 1], label='out', color='r')
+
+
+def evaluate_obstacles(args):
+    # Array with columns (x, y).
+    ground_obst = read_csv(os.path.join(
+        args.eval_data_dir, 'eval_obstacles.csv'))
+
+    # Array with columns (x, y).
+    out_obst = read_csv(os.path.join(args.out_dir, 'slam_out_landmarks.csv'))
+
+    # Use evaluation metric written by Galois.
+    n_extras, score = obsticle_compare(out_obst, ground_obst)
+    print "{} ground obstacles; {} out obstacles".format(
+        len(ground_obst), len(out_obst))
+    print "Map error: {}".format(score)
+
+    # Optionally plot obstacles.
+    if args.plot:
+        r = 0.37
+        ground_obst_3 = [(x, y, r) for x, y in ground_obst]
+        out_obst_3 = [(x, y, r) for x, y in out_obst]
+        plot_obstacles(ground_obst_3, plt.gca(), color=(0, 1, 0, 0.6))
+        plot_obstacles(out_obst_3, plt.gca(), color=(1, 0, 0, 0.6))
+
+
+if __name__ == "__main__":
+    # Parse command-line args.
+    parser = argparse.ArgumentParser(
+        description='Evaluate trajectory output by BLOG.')
+    parser.add_argument('eval_data_dir')
+    parser.add_argument('out_dir')
+    parser.add_argument('--plot', action='store_true')
+    args = parser.parse_args()
+
+    if args.plot:
         import matplotlib.pyplot as plt
         plt.figure(figsize=(8, 8))
-        plot_traj(plt.gca(), 'ground', ground_traj)
-        plot_traj(plt.gca(), 'out', out_traj)
 
+    evaluate_trajectories(args)
+    evaluate_obstacles(args)
+
+    if args.plot:
         plt.plot([-7, -7, 7, 7, -7], [-7, 7, 7, -7, -7], 'k')
         plt.xlim(-8, 8)
         plt.ylim(-8, 8)

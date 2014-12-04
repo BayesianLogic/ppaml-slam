@@ -109,14 +109,15 @@ def readings_for_obstacle_vectorized(
     return solns
 
 
-def plot_obstacles(obstacles, ax):
+def plot_obstacles(obstacles, ax, **kwargs):
     """
     Plot the given list of obstacles.
 
     `obstacles` is a list of (x, y, r) tuples.
     """
+    color = kwargs.get('color', (1, 0, 0, 0.6))
     for x, y, r in obstacles:
-        obst = plt.Circle((x, y), radius=r, color=(1, 0, 0, 0.6), zorder=1)
+        obst = plt.Circle((x, y), radius=r, color=color, zorder=1)
         ax.add_patch(obst)
 
 
