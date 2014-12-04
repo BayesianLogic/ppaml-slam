@@ -4,11 +4,9 @@ from ppaml_car.data import X_MAX
 from ppaml_car.data import Y_MIN
 from ppaml_car.data import Y_MAX
 from ppaml_car import draw_dr
+from ppaml_car import lasers
+from ppaml_car import ransac
 from ppaml_car.fast import readings_for_obstacles
-from ppaml_car.lasers import car_loc_to_laser_loc
-from ppaml_car.lasers import default_laser_angles
-from ppaml_car.lasers import default_laser_max_range
-from ppaml_car.lasers import plot_obstacles
 
 from numutil import logaddexp_many
 from numutil import norm_log_pdf_id_cov
@@ -132,15 +130,15 @@ class LocPF(PF):
         self.theta_noise_stdev = 0.0015
 
         self.obs_cov_scale = 30.0
-        self.laser_angles = default_laser_angles()
-        self.laser_max_range = default_laser_max_range()
+        self.laser_angles = lasers.default_laser_angles()
+        self.laser_max_range = lasers.default_laser_max_range()
 
         # Convert obstacles from list of (x, y) to array of (x, y, r).
         obstacle_radius = 0.37
-        self.obstacles = []
+        self.ground_obstacles = []
         for x, y in dataset.ground_obstacles:
-            self.obstacles.append((x, y, obstacle_radius))
-        self.obstacles = np.array(self.obstacles)
+            self.ground_obstacles.append((x, y, obstacle_radius))
+        self.ground_obstacles = np.array(self.ground_obstacles)
 
         self.fig1 = plt.figure(figsize=(8, 12))
         self.ax1 = self.fig1.add_subplot(211)
@@ -171,7 +169,7 @@ class LocPF(PF):
         self.ax1.plot(gps_traj[:, 1], gps_traj[:, 2], label='ground')
         dr_traj = draw_dr.get_dead_reckoning_traj(dataset, draw_dr.dynamics)
         self.ax1.plot(dr_traj[:, 1], dr_traj[:, 2], label='dead-reckoning')
-        plot_obstacles(self.obstacles, self.ax1)
+        lasers.plot_obstacles(self.ground_obstacles, self.ax1)
 
         self.ax1.set_xlim(X_MIN - 1, X_MAX + 1)
         self.ax1.set_ylim(Y_MIN - 1, Y_MAX + 1)
@@ -182,7 +180,7 @@ class LocPF(PF):
     def new_particle_from_prior(self):
         return LocPFParticle(
             self.dataset.init_x, self.dataset.init_y, self.dataset.init_angle,
-            self.obstacles)
+            np.empty((0, 3)))
 
     def advance_particle(self, particle):
         old_state = [particle.x, particle.y, particle.theta]
@@ -217,15 +215,25 @@ class LocPF(PF):
                 loc=0.0, scale=self.theta_noise_stdev)
             new_state[2] = normalize_radians(new_state[2])
 
+        # Extract obstacles.
+        obstacles = particle.obstacles
+        if self.dataset.ts2sensor[self.current_ts] == 'laser':
+            laser_x, laser_y, laser_theta = lasers.car_loc_to_laser_loc(
+                particle.x, particle.y, particle.theta,
+                self.dataset.a, self.dataset.b)
+            obstacles = ransac.extract_obstacles(
+                laser_x, laser_y, laser_theta,
+                self.laser_angles, self.laser_max_range,
+                np.array(self.dataset.ts2laser[self.current_ts]))
+
         return LocPFParticle(
-            new_state[0], new_state[1], new_state[2],
-            self.obstacles)
+            new_state[0], new_state[1], new_state[2], obstacles)
 
     def logweigh_particle(self, particle):
         logweight = 0.0
 
         if self.dataset.ts2sensor[self.current_ts] == 'laser':
-            laser_x, laser_y, laser_theta = car_loc_to_laser_loc(
+            laser_x, laser_y, laser_theta = lasers.car_loc_to_laser_loc(
                 particle.x, particle.y, particle.theta,
                 self.dataset.a, self.dataset.b)
             true_lasers = readings_for_obstacles(
@@ -239,7 +247,7 @@ class LocPF(PF):
         return logweight
 
     def have_more_data(self):
-        # return self.current_ts < 5000
+        return self.current_ts < 30
         return self.current_ts < len(self.dataset.timestamps)
 
     def hook_after_initialize(self):
@@ -364,7 +372,8 @@ class LocPF(PF):
             # Update plot of ground_gps lliks.
             self.plot_xs.append(ground_gps_ts)
             ground_gps_llik = self.logweigh_particle(LocPFParticle(
-                ground_gps[0], ground_gps[1], ground_gps[2], self.obstacles))
+                ground_gps[0], ground_gps[1], ground_gps[2],
+                self.ground_obstacles))
             self.ground_gps_lliks.append(ground_gps_llik)
             if do_draw:
                 if self.ground_gps_lliks_line:
