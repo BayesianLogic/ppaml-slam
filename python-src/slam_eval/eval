@@ -1,0 +1,14 @@
+#!/bin/bash -eu
+
+if (( $# != 3 )); then
+    printf "Usage: %s solution_data eval_data resultant_path \n" "$0" >&2
+    exit 1
+fi
+
+mkdir -p "$3"
+
+`dirname $0`/slam_eval.py "$1" "$2" "$3"/output
+se=$?
+`dirname $0`/slam_img.py  "$1" "$2" "$3"
+
+if [ $[$se+$?] != 0 ]; then rm -rf "$3"; fi;
