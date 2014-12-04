@@ -1,7 +1,6 @@
 from numutil import norm_log_pdf_id_cov
 from ppaml_car import fast
 
-# import networkx as nx
 import numpy as np
 
 
@@ -84,42 +83,5 @@ def extract_obstacles(
         print "Added {} for an improvement of {}".format(
             candidate, best_improvement)
         all_obstacles = best_obstacles
-
-    # # Find the connected components in a graph, where each obstacle is a
-    # # node, and there is an edge between two obstacles if they overlap.
-    # graph = nx.Graph()
-    # for i in xrange(len(all_obstacles)):
-    #     graph.add_node(i)
-    # for i in xrange(len(all_obstacles)):
-    #     for j in xrange(i + 1, len(all_obstacles)):
-    #         if overlap(all_obstacles[i], all_obstacles[j]):
-    #             graph.add_edge(i, j)
-    # components = nx.connected_components(graph)
-    # for c in components:
-    #     print c
-
-    # # Prune obstacles greedily.
-    # max_loss = 0.5
-    # while True:
-    #     all_score = calc_score(all_obstacles)
-    #     print "Have {} obstacles; all_score={}".format(
-    #         len(all_obstacles), all_score)
-    #     best_i = None
-    #     best_obstacles = None
-    #     best_loss = np.inf
-    #     for i in xrange(len(all_obstacles)):
-    #         obstacles = all_obstacles[:i] + all_obstacles[i + 1:]
-    #         score = calc_score(obstacles)
-    #         loss = all_score - score
-    #         if loss < best_loss:
-    #             best_i = i
-    #             best_obstacles = obstacles
-    #             best_loss = loss
-    #     assert best_i is not None
-    #     if best_loss > max_loss:
-    #         break
-    #     print "Removing {} for a loss of {}".format(
-    #         all_obstacles[best_i], best_loss)
-    #     all_obstacles = best_obstacles
 
     return np.array(all_obstacles)
