@@ -4,13 +4,14 @@
 Evaluate the trajectory output by BLOG against the ground-truth GPS trajectory.
 
 Example usage:
-    python -m ppaml_car.evaluate ground_gps.csv slam_out_path.csv --plot
+    python -m ppaml_car.evaluate eval_data_dir out_dir --plot
 """
 
 
 import argparse
 import csv
 import numpy as np
+import os
 
 
 def read_csv(path):
@@ -55,22 +56,22 @@ if __name__ == "__main__":
     # Parse command-line args.
     parser = argparse.ArgumentParser(
         description='Evaluate trajectory output by BLOG.')
-    parser.add_argument('ground_gps_csv')
-    parser.add_argument('out_csv')
+    parser.add_argument('eval_data_dir')
+    parser.add_argument('out_dir')
     parser.add_argument('--plot', action='store_true')
     args = parser.parse_args()
 
     # Array with columns (time, lat, lon).
     # We get rid of the 4th orientation column.
-    ground_traj = read_csv(args.ground_gps_csv)
+    ground_traj = read_csv(os.path.join(args.eval_data_dir, 'eval_gps.csv'))
     ground_traj = ground_traj[:, :3]
 
     # Array with columns (time, lat, lon).
-    blog_traj = read_csv(args.out_csv)
+    out_traj = read_csv(os.path.join(args.out_dir, 'slam_out_path.csv'))
 
     # Evaluate error between the trajectories.
-    if len(blog_traj) == len(ground_traj):
-        print "Traj error: {}".format(compute_error(ground_traj, blog_traj))
+    if len(out_traj) == len(ground_traj):
+        print "Traj error: {}".format(compute_error(ground_traj, out_traj))
     else:
         print "Traj not the same length; can't evaluate."
 
@@ -79,7 +80,7 @@ if __name__ == "__main__":
         import matplotlib.pyplot as plt
         plt.figure(figsize=(8, 8))
         plot_traj(plt.gca(), 'ground', ground_traj)
-        plot_traj(plt.gca(), 'blog', blog_traj)
+        plot_traj(plt.gca(), 'out', out_traj)
 
         plt.plot([-7, -7, 7, 7, -7], [-7, 7, 7, -7, -7], 'k')
         plt.xlim(-8, 8)
