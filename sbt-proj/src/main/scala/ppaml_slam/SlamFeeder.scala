@@ -88,7 +88,9 @@ class SlamFeeder(model: Model, dirPath: String) extends FilterFeeder {
       } else if (sensor == 'laser) {
         val laserLine = laserReader.next
         val laserTime = laserLine(0).toDouble
-        val laserVals = laserLine.drop(1).take(361).map((s) => s.toDouble)
+        // In the data, the laser readings are clockwise.
+        // Make them counter-clockwise (trigonometric order).
+        val laserVals = laserLine.drop(1).take(361).reverse.map((s) => s.toDouble)
         val laserBlogStr = seqToBlogColVec(laserVals)
         assert (Math.abs(laserTime - time) < 1e-2)
         evidence.addFromString(
