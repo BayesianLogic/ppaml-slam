@@ -17,7 +17,7 @@ random Real steering(Timestep timestep) ~ DontCare();
 random Real time(Timestep timestep) ~ DontCare();
 
 fixed Real dynamicsCovScale = 0.00001;
-fixed Real laserCovScale = 1000.0;
+fixed Real laserCovScale = 30.0;
 
 
 //////////////////////////////////////////////////////////////////////////////
