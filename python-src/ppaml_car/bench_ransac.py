@@ -23,9 +23,13 @@ if __name__ == "__main__":
     laser_angles = lasers.default_laser_angles()
     laser_max_range = lasers.default_laser_max_range()
 
-    num_trials = 10
+    import time
+    timer = time.time()
+    num_trials = 1000
     for t in xrange(num_trials):
         extract_obstacles_py()
+    timer = time.time() - timer
+    print "{} seconds per trial".format(timer / num_trials)
 
     # from timeit import timeit
     # t_old = timeit(
