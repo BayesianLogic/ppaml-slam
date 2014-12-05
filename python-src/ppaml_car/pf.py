@@ -217,7 +217,8 @@ class LocPF(PF):
 
         # Extract obstacles.
         obstacles = particle.obstacles
-        if self.dataset.ts2sensor[self.current_ts] == 'laser':
+        if (len(obstacles) == 0 and
+                self.dataset.ts2sensor[self.current_ts] == 'laser'):
             laser_x, laser_y, laser_theta = lasers.car_loc_to_laser_loc(
                 particle.x, particle.y, particle.theta,
                 self.dataset.a, self.dataset.b)
@@ -225,6 +226,8 @@ class LocPF(PF):
                 laser_x, laser_y, laser_theta,
                 self.laser_angles, self.laser_max_range,
                 np.array(self.dataset.ts2laser[self.current_ts]))
+            # print "old obstacles:", particle.obstacles
+            # print "new obstacles:", obstacles
 
         return LocPFParticle(
             new_state[0], new_state[1], new_state[2], obstacles)
