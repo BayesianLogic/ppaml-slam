@@ -247,11 +247,12 @@ class LocPF(PF):
         return logweight
 
     def have_more_data(self):
-        return self.current_ts < 30
+        # return self.current_ts < 30
         return self.current_ts < len(self.dataset.timestamps)
 
     def hook_after_initialize(self):
         self.old_scatter = None
+        self.old_obstacle_scatter = None
         self.old_gps = None
         self.gps_timesteps = []
         self.ground_gps_traj = []
@@ -346,6 +347,17 @@ class LocPF(PF):
             best_particle = self.debug_new_particles[best_i]
             print "best_particle = {}".format(
                 [best_particle.x, best_particle.y, best_particle.theta])
+
+            # Plot obstacles of the best particle.
+            if do_draw:
+                if self.old_obstacle_scatter:
+                    self.old_obstacle_scatter.remove()
+                self.old_obstacle_scatter = self.ax1.scatter(
+                    best_particle.obstacles[:, 0],
+                    best_particle.obstacles[:, 1],
+                    c='k',
+                    s=50,
+                    marker='x')
 
             # Plot the last known ground GPS location.
             ground_gps = self.ground_gps_traj[-1]
