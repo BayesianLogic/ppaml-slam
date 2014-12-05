@@ -38,13 +38,6 @@ def extract_obstacles(
         return norm_log_pdf_id_cov(obs_lasers, lasers, scoring_laser_std)
 
     def get_all_candidates():
-        # List of indices where the laser readings are not laser_max_range.
-        indices = []
-        for i, reading in enumerate(obs_lasers):
-            if reading < 0.9 * laser_max_range:
-                indices.append(i)
-        print len(indices)
-
         all_candidates = []
         for i in xrange(1000):
             index = np.random.randint(len(laser_angles))
