@@ -36,10 +36,6 @@ def extract_obstacles(
             laser_angles, laser_max_range, obstacles_arr)
         return norm_log_pdf_id_cov(obs_lasers, lasers, scoring_laser_std)
 
-    def overlap(o1, o2):
-        dist2 = (o1[0] - o2[0]) ** 2 + (o1[1] - o2[1]) ** 2
-        return dist2 <= known_radius ** 2
-
     # Start with an empty set of obstacles.
     empty_score = calc_score([])
     # print "empty_score={}".format(empty_score)
