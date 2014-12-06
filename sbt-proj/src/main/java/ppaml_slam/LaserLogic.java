@@ -31,6 +31,18 @@ public class LaserLogic {
     }
   };
 
+  static public double defaultLaserMaxRange() {
+    return 10.0;
+  }
+
+  static public double[] defaultLaserAngles() {
+    double[] laserAngles = new double[361];
+    for (int i = 0; i < 361; i++) {
+      laserAngles[i] = (-90 + i * 0.5) * Math.PI / 180;
+    }
+    return laserAngles;
+  }
+
   private static Double solveQuadraticEquation(double a, double b, double c) {
     double delta = b * b - 4 * a * c;
     if (delta < 0) {
@@ -158,5 +170,11 @@ public class LaserLogic {
      */
 
     return readings;
+  }
+
+  public static ArrayList<Obstacle> extractObstacles(double laserX, double laserY, double laserTheta, double[] laserAngles, double laserMaxRange, double[] obsLasers) {
+    final double obstacleRadius = 0.37;
+    // TODO
+    return null;
   }
 };

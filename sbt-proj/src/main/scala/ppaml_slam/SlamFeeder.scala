@@ -1,6 +1,7 @@
 package ppaml_slam
 
 import java.io.File
+import scala.collection.JavaConversions._
 
 import blog.debug.FilterFeeder
 import blog.model.Evidence
@@ -8,11 +9,11 @@ import blog.model.Queries
 import blog.model.Model
 import com.github.tototoshi.csv._
 
-class SlamFeeder(model: Model, dirPath: String, maxTimesteps: Int) extends FilterFeeder {
+class SlamFeeder(model: Model, inputDirPath: String, maxTimesteps: Int) extends FilterFeeder {
 
   // Read properties file.
   val propertiesReader = CSVReader.open(new File(
-    dirPath + "/input/input_properties.csv")).iterator
+    inputDirPath + "/input_properties.csv")).iterator
   val propertiesHeader = propertiesReader.next
   val propertiesValues = propertiesReader.next
   val paramL = propertiesValues(0).toDouble
@@ -26,22 +27,18 @@ class SlamFeeder(model: Model, dirPath: String, maxTimesteps: Int) extends Filte
   // Set up readers for the sensor files.
   // These will be read lazily (in an online fashion).
   val sensorReader = CSVReader.open(new File(
-    dirPath + "/input/input_sensor.csv")).iterator
+    inputDirPath + "/input_sensor.csv")).iterator
   val code2sensor = Map("1" -> 'gps, "2" -> 'control, "3" -> 'laser)
   val sensorHeader = sensorReader.next
   val controlReader = CSVReader.open(new File(
-    dirPath + "/input/input_control.csv")).iterator
+    inputDirPath + "/input_control.csv")).iterator
   val controlHeader = controlReader.next
   val laserReader = CSVReader.open(new File(
-    dirPath + "/input/input_laser.csv")).iterator
+    inputDirPath + "/input_laser.csv")).iterator
   val laserHeader = laserReader.next
 
-  // Read ground obstacles for now (this is cheating).
-  val obstaclesReader = CSVReader.open(new File(
-    dirPath + "/eval_data/eval_obstacles.csv")).iterator
-  val obstaclesHeader = obstaclesReader.next
-  val obstacleRadius = 0.37
-  val obstacles = obstaclesReader.toList.map(obstaclesLineToObstacle)
+  // For now, extract the obstacles from the first laser reading.
+  val obstacles = extractObstaclesFromFirstLaserReading
 
   var timestep = -1
   var prevVelocity = 0.0
@@ -94,9 +91,8 @@ class SlamFeeder(model: Model, dirPath: String, maxTimesteps: Int) extends Filte
       } else if (sensor == 'laser) {
         val laserLine = laserReader.next
         val laserTime = laserLine(0).toDouble
-        // In the data, the laser readings are clockwise.
-        // Make them counter-clockwise (trigonometric order).
-        val laserVals = laserLine.drop(1).take(361).reverse.map((s) => s.toDouble)
+
+        val laserVals = laserLineToLaserVals(laserLine)
         val laserBlogStr = seqToBlogColVec(laserVals)
         assert (Math.abs(laserTime - time) < 1e-2)
         evidence.addFromString(
@@ -114,10 +110,6 @@ class SlamFeeder(model: Model, dirPath: String, maxTimesteps: Int) extends Filte
     (timestep - 1, evidence, queries)
   }
 
-  def obstaclesLineToObstacle(line: Seq[String]): Seq[Double] = {
-    Seq(line(0).toDouble, line(1).toDouble, obstacleRadius)
-  }
-
   def seqToBlogColVec(seq: Seq[Double]): String = {
     "[ " + seq.mkString("; ") + "]"
   }
@@ -128,6 +120,33 @@ class SlamFeeder(model: Model, dirPath: String, maxTimesteps: Int) extends Filte
 
   def seqSeqToBlogMatrix(seqSeq: Seq[Seq[Double]]): String = {
     "[\n    " + seqSeq.map(seqToBlogRowVec).mkString(",\n    ") + "\n]"
+  }
+
+  def laserLineToLaserVals(laserCSVLine: Seq[String]): Seq[Double] = {
+    // In the data, the laser readings are clockwise.
+    // Make them counter-clockwise (trigonometric order).
+    laserCSVLine.drop(1).take(361).reverse.map((s) => s.toDouble)
+  }
+
+  def extractObstaclesFromFirstLaserReading: Seq[Seq[Double]] = {
+    val laserReader = CSVReader.open(new File(
+      inputDirPath + "/input_laser.csv")).iterator
+    val laserHeader = laserReader.next
+    val laserVals = laserLineToLaserVals(laserReader.next).toArray
+    val (laserX, laserY, laserTheta) = SlamFeeder.carLocToLaserLoc(initX, initY, initTheta, paramA, paramB)
+    val laserAngles = LaserLogic.defaultLaserAngles
+    val laserMaxRange = LaserLogic.defaultLaserMaxRange
+    val obstacles = LaserLogic.extractObstacles(laserX, laserY, laserTheta, laserAngles, laserMaxRange, laserVals)
+    obstacles.map(obstacle => Seq(obstacle.x, obstacle.y, obstacle.r))
+  }
+}
+
+object SlamFeeder {
+  def carLocToLaserLoc(carX: Double, carY: Double, carTheta: Double, paramA: Double, paramB: Double): (Double, Double, Double) = {
+    val laserX = carX + paramA * Math.cos(carTheta) + paramB * Math.cos(carTheta + Math.PI / 2)
+    val laserY = carY + paramA * Math.sin(carTheta) + paramB * Math.sin(carTheta + Math.PI / 2)
+    val laserTheta = carTheta
+    (laserX, laserY, laserTheta)
   }
 
 }

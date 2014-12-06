@@ -23,7 +23,7 @@ object Main {
     val numParticles = paramReader.next.toInt
     val maxTimesteps = paramReader.next.toInt
 
-    val dataDirPath = args(1)
+    val inputDirPath = args(1)
     val outputDirPath = args(2)
 
     val outputPathWriter = new PrintWriter(new File(outputDirPath + "/slam_out_path.csv"))
@@ -37,7 +37,7 @@ object Main {
     blog.Main.simpleSetupFromFiles(model, dummyEvidence, dummyQueries, modelPath :: Nil)
     // Any evidence and queries from the model are ignored.
     // All the evidence and queries come from the feeder.
-    val feeder = new SlamFeeder(model, dataDirPath, maxTimesteps)
+    val feeder = new SlamFeeder(model, inputDirPath, maxTimesteps)
     val pf = new ParticleFilter(model, numParticles, feeder)
     while (feeder.hasNext) {
       val queries = pf.advance
