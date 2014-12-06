@@ -8,7 +8,7 @@ import blog.model.Queries
 import blog.model.Model
 import com.github.tototoshi.csv._
 
-class SlamFeeder(model: Model, dirPath: String) extends FilterFeeder {
+class SlamFeeder(model: Model, dirPath: String, maxTimesteps: Int) extends FilterFeeder {
 
   // Read properties file.
   val propertiesReader = CSVReader.open(new File(
@@ -48,7 +48,13 @@ class SlamFeeder(model: Model, dirPath: String) extends FilterFeeder {
   var prevSteering = 0.0
   var prevTimestepWasGPS = false
 
-  def hasNext: Boolean = sensorReader.hasNext
+  def hasNext: Boolean = {
+    if (timestep >= maxTimesteps) {
+      false
+    } else {
+      sensorReader.hasNext
+    }
+  }
 
   def next: (Int, Evidence, Queries) = {
     prevTimestepWasGPS = false

@@ -10,16 +10,21 @@ import blog.model.Queries
 import blog.model.Model
 import java.io.PrintWriter
 import java.io.File
+import scala.io.Source
 
 object Main {
   def main(args: Array[String]) = {
-    if (args.length != 3) {
-      throw new RuntimeException(
-        "Usage: Main path_to_data_dir path_to_output_dir num_particles")
+    if (args.length != 4) {
+      throw new RuntimeException("Usage: Main param_file input_dir output_dir")
     }
-    val dataDirPath = args(0)
-    val outputDirPath = args(1)
-    val numParticles = args(2).toInt
+
+    // Parameter file has two lines: numParticles and maxTimesteps.
+    val paramReader = Source.fromFile(args(0)).getLines
+    val numParticles = paramReader.next.toInt
+    val maxTimesteps = paramReader.next.toInt
+
+    val dataDirPath = args(1)
+    val outputDirPath = args(2)
 
     val outputPathWriter = new PrintWriter(new File(outputDirPath + "/slam_out_path.csv"))
     outputPathWriter.println("TimeGPS,GPSLat,GPSLon")
@@ -32,7 +37,7 @@ object Main {
     blog.Main.simpleSetupFromFiles(model, dummyEvidence, dummyQueries, modelPath :: Nil)
     // Any evidence and queries from the model are ignored.
     // All the evidence and queries come from the feeder.
-    val feeder = new SlamFeeder(model, dataDirPath)
+    val feeder = new SlamFeeder(model, dataDirPath, maxTimesteps)
     val pf = new ParticleFilter(model, numParticles, feeder)
     while (feeder.hasNext) {
       val queries = pf.advance
