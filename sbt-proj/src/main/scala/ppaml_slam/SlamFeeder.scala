@@ -87,20 +87,20 @@ class SlamFeeder(model: Model, inputDirPath: String, maxTimesteps: Int) extends 
         val controlTime = controlLine(0).toDouble
         prevVelocity = controlLine(1).toDouble
         prevSteering = controlLine(2).toDouble
-        assert (Math.abs(controlTime - time) < 1e-2)
+        assert(Math.abs(controlTime - time) < 1e-2)
       } else if (sensor == 'laser) {
         val laserLine = laserReader.next
         val laserTime = laserLine(0).toDouble
 
         val laserVals = laserLineToLaserVals(laserLine)
         val laserBlogStr = seqToBlogColVec(laserVals)
-        assert (Math.abs(laserTime - time) < 1e-2)
+        assert(Math.abs(laserTime - time) < 1e-2)
         evidence.addFromString(
           s"obs laserReadings(@$timestep) = $laserBlogStr;")
       }
     }
-    evidence.compile  // FIXME: clumsy interface
-    queries.compile  // FIXME: clumsy interface
+    evidence.compile // FIXME: clumsy interface
+    queries.compile // FIXME: clumsy interface
     timestep += 1
     println("-------------")
     println(timestep - 1)

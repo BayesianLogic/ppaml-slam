@@ -8,7 +8,6 @@ import blog.common.numerical.MatrixFactory;
 import blog.common.numerical.MatrixLib;
 import blog.model.AbstractFunctionInterp;
 
-
 public class LaserInterp extends AbstractFunctionInterp {
 
   public LaserInterp(List objs) {
@@ -18,11 +17,10 @@ public class LaserInterp extends AbstractFunctionInterp {
 
   /**
    * Compute ground-truth laser readings.
-   *
-   * Input: laserX, laserY, laserTheta, obstacles,
-   *        where obstacles is either:
-   *        - a set of (x, y, r) lists, or
-   *        - a matrix with (x, y, r) rows.
+   * 
+   * Input: laserX, laserY, laserTheta, obstacles, where obstacles is either a
+   * set of (x, y, r) lists, or a matrix with (x, y, r) rows.
+   * 
    * Output: double[361] laser readings.
    */
   public Object getValue(List args) {
@@ -44,9 +42,8 @@ public class LaserInterp extends AbstractFunctionInterp {
     }
 
     // Compute laser readings.
-    double[] readings = LaserLogic.readingsForObstacles(
-      laserX, laserY, laserTheta,
-      laserAngles, laserMaxRange, obstacles);
+    double[] readings = LaserLogic.readingsForObstacles(laserX, laserY, laserTheta, laserAngles, laserMaxRange,
+        obstacles);
 
     // Convert result to MatrixLib.
     // Additional step required because MatrixLib only takes a double[][].
@@ -62,10 +59,7 @@ public class LaserInterp extends AbstractFunctionInterp {
     ArrayList<LaserLogic.Obstacle> obstacles = new ArrayList<LaserLogic.Obstacle>();
     for (Object obj : rawObstacles) {
       ArrayList coords = (ArrayList) obj;
-      obstacles.add(new LaserLogic.Obstacle(
-        (double) coords.get(0),
-        (double) coords.get(1),
-        (double) coords.get(2)));
+      obstacles.add(new LaserLogic.Obstacle((double) coords.get(0), (double) coords.get(1), (double) coords.get(2)));
     }
     return obstacles;
   }
@@ -74,10 +68,8 @@ public class LaserInterp extends AbstractFunctionInterp {
     // rawObstacles is a blog.common.numerical.MatrixLib with (x, y, r) rows.
     ArrayList<LaserLogic.Obstacle> obstacles = new ArrayList<LaserLogic.Obstacle>();
     for (int r = 0; r < rawObstacles.numRows(); r++) {
-      obstacles.add(new LaserLogic.Obstacle(
-        rawObstacles.elementAt(r, 0),
-        rawObstacles.elementAt(r, 1),
-        rawObstacles.elementAt(r, 2)));
+      obstacles.add(new LaserLogic.Obstacle(rawObstacles.elementAt(r, 0), rawObstacles.elementAt(r, 1), rawObstacles
+          .elementAt(r, 2)));
     }
     return obstacles;
   }

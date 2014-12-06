@@ -44,13 +44,13 @@ object Main {
       if (feeder.prevTimestepWasGPS) {
         // Extract time. The histogram for time(@t) has a single value.
         // FIXME: horrible interface.
-        assert (queries(0).toString().startsWith("time"))
+        assert(queries(0).toString().startsWith("time"))
         val time = queries(0).getHistogram().entrySet().iterator().next().asInstanceOf[Histogram.Entry].getElement
 
         // Extract pose from the most likely particle.
         // FIXME: horrible interface.
-        assert (queries(1).toString().startsWith("stateWithoutNoise"))
-        var bestPose : MatrixLib = null
+        assert(queries(1).toString().startsWith("stateWithoutNoise"))
+        var bestPose: MatrixLib = null
         var bestLogLik = Double.NegativeInfinity
         queries(1).getHistogram().entrySet().foreach(rawEntry => {
           val entry = rawEntry.asInstanceOf[Histogram.Entry]
@@ -59,7 +59,7 @@ object Main {
             bestPose = entry.getElement.asInstanceOf[MatrixLib]
           }
         })
-        assert (bestPose != null)
+        assert(bestPose != null)
 
         // Output results.
         val latitude = bestPose.elementAt(1, 0)

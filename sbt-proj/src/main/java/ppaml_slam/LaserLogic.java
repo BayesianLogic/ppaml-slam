@@ -172,7 +172,8 @@ public class LaserLogic {
     return readings;
   }
 
-  public static ArrayList<Obstacle> extractObstacles(double laserX, double laserY, double laserTheta, double[] laserAngles, double laserMaxRange, double[] obsLasers) {
+  public static ArrayList<Obstacle> extractObstacles(double laserX, double laserY, double laserTheta,
+      double[] laserAngles, double laserMaxRange, double[] obsLasers) {
     final double obstacleRadius = 0.37;
     // TODO
     return null;
