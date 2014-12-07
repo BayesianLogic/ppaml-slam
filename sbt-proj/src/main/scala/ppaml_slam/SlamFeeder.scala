@@ -137,6 +137,8 @@ class SlamFeeder(model: Model, inputDirPath: String, maxTimesteps: Int) extends 
     val laserAngles = LaserLogic.defaultLaserAngles
     val laserMaxRange = LaserLogic.defaultLaserMaxRange
     val obstacles = LaserLogic.extractObstacles(laserX, laserY, laserTheta, laserAngles, laserMaxRange, laserVals)
+    println("Have " + obstacles.size + " obstacles:");
+    println(obstacles)
     obstacles.map(obstacle => Seq(obstacle.x, obstacle.y, obstacle.r))
   }
 }

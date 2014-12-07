@@ -68,7 +68,13 @@ object Main {
         outputPathWriter.flush
       }
     }
-
     outputPathWriter.close
+
+    val outputMapWriter = new PrintWriter(new File(outputDirPath + "/slam_out_landmarks.csv"));
+    outputMapWriter.println("GPSLon,GPSLat")
+    feeder.obstacles.foreach(obstacle => {
+      outputMapWriter.println(obstacle(0) + "," + obstacle(1))
+    })
+    outputMapWriter.close
   }
 }

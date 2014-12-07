@@ -1,8 +1,13 @@
 package ppaml_slam;
 
 import java.util.ArrayList;
+import java.util.Random;
 
-// NOTE: This file is directly ported from fast_lasers.c, so the style not great.
+import blog.common.numerical.MatrixFactory;
+import blog.common.numerical.MatrixLib;
+import blog.distrib.IsotropicMultivarGaussian;
+
+// NOTE: This file is directly ported from C / python, so the style not great.
 
 /**
  * Computes ground-truth laser readings given known pose and obstacles.
@@ -28,6 +33,10 @@ public class LaserLogic {
       this.x = x;
       this.y = y;
       this.r = r;
+    }
+
+    public String toString() {
+      return "(" + x + ", " + y + ", " + r + ")";
     }
   };
 
@@ -173,9 +182,102 @@ public class LaserLogic {
   }
 
   public static ArrayList<Obstacle> extractObstacles(double laserX, double laserY, double laserTheta,
-      double[] laserAngles, double laserMaxRange, double[] obsLasers) {
-    final double obstacleRadius = 0.37;
-    // TODO
-    return null;
+      double[] laser_angles, double laser_max_range, double[] obs_lasers) {
+    // We assume the obstacle radius and noise params are known.
+    final double known_radius = 0.37;
+    final double true_laser_std = 0.1;
+    final double scoringLaserCovScale = 2.0;
+    final double min_improvement = 2.0;
+
+    // Find segments where the laser readings are less than laser_max_range.
+    int numSegments = 0;
+    int segments[][] = new int[360][2];
+    int last_start = -1;
+    if (obs_lasers[0] < 0.9 * laser_max_range) {
+      last_start = 0;
+    }
+    for (int i = 0; i < obs_lasers.length; i++) {
+      double reading = obs_lasers[i];
+      if (last_start != -1 && reading >= 0.9 * laser_max_range) {
+        segments[numSegments][0] = last_start;
+        segments[numSegments][1] = i - 1;
+        numSegments++;
+        last_start = -1;
+      } else if (last_start == -1 && reading < 0.9 * laser_max_range) {
+        last_start = i;
+      }
+    }
+    if (last_start != -1) {
+      segments[numSegments][0] = last_start;
+      segments[numSegments][1] = obs_lasers.length - 1;
+      numSegments++;
+    }
+
+    // Place an obstacle in the center of each of those segments.
+    Random rng = new Random();
+    Scorer scorer = new Scorer(laserX, laserY, laserTheta, laser_angles, laser_max_range, scoringLaserCovScale,
+        obs_lasers);
+    ArrayList<Obstacle> all_obstacles = new ArrayList<Obstacle>();
+    double empty_score = scorer.calcScore(all_obstacles);
+    for (int i = 0; i < numSegments; i++) {
+      int start = segments[i][0];
+      int stop = segments[i][1];
+      int mid = (start + stop + 1) / 2;
+      Obstacle bestObstacle = null;
+      double best_improvement = Double.NEGATIVE_INFINITY;
+      for (int trial = 0; trial < 10; trial++) {
+        double noise = rng.nextGaussian() * true_laser_std;
+        double distance = obs_lasers[mid] + known_radius + noise;
+        Obstacle obstacle = new Obstacle();
+        obstacle.x = laserX + distance * Math.cos(laserTheta + laser_angles[mid]);
+        obstacle.y = laserY + distance * Math.sin(laserTheta + laser_angles[mid]);
+        obstacle.r = known_radius;
+        ArrayList<Obstacle> tmp = new ArrayList<Obstacle>();
+        tmp.add(obstacle);
+        double score = scorer.calcScore(tmp);
+        double improvement = score - empty_score;
+        if (improvement >= best_improvement) {
+          bestObstacle = obstacle;
+          best_improvement = improvement;
+        }
+      }
+      if (best_improvement > min_improvement) {
+        all_obstacles.add(bestObstacle);
+      }
+    }
+
+    return all_obstacles;
+  }
+
+  public static class Scorer {
+    private double laserX;
+    private double laserY;
+    private double laserTheta;
+    private double[] laserAngles;
+    private double laserMaxRange;
+    private double[] obsLasers;
+    private IsotropicMultivarGaussian gauss;
+
+    public Scorer(double laserX, double laserY, double laserTheta, double[] laserAngles, double laserMaxRange,
+        double scoringLaserCovScale, double[] obsLasers) {
+      this.laserX = laserX;
+      this.laserY = laserY;
+      this.laserTheta = laserTheta;
+      this.laserAngles = laserAngles;
+      this.laserMaxRange = laserMaxRange;
+      this.obsLasers = obsLasers;
+      gauss = new IsotropicMultivarGaussian();
+      MatrixLib mean = MatrixFactory.zeros(laserAngles.length, 1);
+      gauss.setParams(mean, scoringLaserCovScale);
+    }
+
+    public double calcScore(ArrayList<Obstacle> obstacles) {
+      double[] lasers = readingsForObstacles(laserX, laserY, laserTheta, laserAngles, laserMaxRange, obstacles);
+      double[][] diff = new double[lasers.length][1];
+      for (int i = 0; i < lasers.length; i++) {
+        diff[i][0] = lasers[i] - obsLasers[i];
+      }
+      return gauss.getLogProb(MatrixFactory.fromArray(diff));
+    }
   }
 };
