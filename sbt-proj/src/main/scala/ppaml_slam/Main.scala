@@ -14,7 +14,7 @@ import scala.io.Source
 
 object Main {
   def main(args: Array[String]) = {
-    if (args.length != 4) {
+    if (args.length != 3) {
       throw new RuntimeException("Usage: Main param_file input_dir output_dir")
     }
 
