@@ -8,6 +8,7 @@ ext_modules = [Extension(
     name="fast",
     sources=["fast.pyx", "fast_lasers.c"],
     extra_compile_args=["-std=c99"],
+    undef_macros=['NDEBUG'],
 )]
 
 
