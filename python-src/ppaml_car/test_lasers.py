@@ -54,6 +54,31 @@ def test_readings_for_obstacles_regression_1():
     nose.tools.assert_almost_equals(obs_lasers[278], 0.739595449593, 10)
 
 
+def test_readings_for_obstacles_regression_2():
+    """
+    Regression test for assertion failure in fast_lasers.c.
+    """
+    lx, ly, ltheta = -5.8043534, -2.562654, -0.000112593
+    laser_angles = lasers.default_laser_angles()
+    laser_max_range = lasers.default_laser_max_range()
+    obstacles = np.array([
+        [4.6, -3.4, 0.68],
+    ])
+    obs_lasers = fast.readings_for_obstacles(
+        lx, ly, ltheta, laser_angles, laser_max_range, obstacles)
+
+    # For debugging when the test fails:
+    if False:
+        for i, val in enumerate(obs_lasers):
+            print i, val
+        lasers.plot_lasers(
+            lx, ly, ltheta, laser_angles, laser_max_range,
+            obstacles, obs_lasers, plt.gca())
+        plt.show()
+
+    nose.tools.assert_almost_equals(obs_lasers[170], 9.761751166778446, 10)
+
+
 def test_readings_for_obstacles_old_new():
     laser_angles = lasers.default_laser_angles()
     laser_max_range = lasers.default_laser_max_range()

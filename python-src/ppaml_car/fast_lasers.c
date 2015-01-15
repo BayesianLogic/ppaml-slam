@@ -60,7 +60,10 @@ bool update_ray(
     if (!success) {
         return false;
     }
-    assert(x1 >= 0 && x1 <= laser_max_range);
+    assert(x1 >= 0);
+    if (x1 > laser_max_range) {
+        return false;
+    }
     if (x1 < readings[i]) {
         readings[i] = x1;
     }
